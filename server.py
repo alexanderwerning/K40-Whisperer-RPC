@@ -22,6 +22,12 @@ class Server(object):
     def serve_forever(self):
         self.server.serve_forever()
 
+    def __enter__(self):
+        self.server.__enter__()
+
+    def __exit__(self ,type, value, traceback):
+        self.server.__exit__(type, value, traceback)
+
 
 class DummyObject:
     def _dispatch(self, method, params):
