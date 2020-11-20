@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     while True:
         # Create server
-        with Server(8000) as server:
+        with Server(('0.0.0.0', 8000)) as server:
             if dry_run:
                 k40 = DummyObject()
             else:
