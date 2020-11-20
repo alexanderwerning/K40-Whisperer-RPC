@@ -3,9 +3,10 @@
 https://en.wikibooks.org/wiki/Algorithm_Implementation/Geometry/Convex_hull/Monotone_chain
 """
 
+
 class hull2D:
 
-    def convex_hull(self,points):
+    def convex_hull(self, points):
         """Computes the convex hull of a set of 2D points.
 
         Input: an iterable sequence of (x, y) pairs representing the points.
@@ -28,7 +29,7 @@ class hull2D:
         def cross(o, a, b):
             return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
 
-        # Build lower hull 
+        # Build lower hull
         lower = []
         for p in points:
             while len(lower) >= 2 and cross(lower[-2], lower[-1], p) <= 0:
@@ -43,28 +44,27 @@ class hull2D:
             upper.append(p)
 
         # Concatenation of the lower and upper hulls gives the convex hull.
-        # Last point of each list is omitted because it is repeated at the beginning of the other list. 
+        # Last point of each list is omitted because it is repeated at the beginning of the other list.
         return lower[:-1] + upper[:-1]
 
-
-    def convexHullecoords(self,ecoords):
-        p=[]
+    def convexHullecoords(self, ecoords):
+        p = []
         for line in ecoords:
-            p.append((line[0],line[1]))
-            
+            p.append((line[0], line[1]))
+
         hull_data = self.convex_hull(p)
-        ecoords=[]
-        for i in range(0,len(hull_data)):
-            ecoords.append([hull_data[i][0],hull_data[i][1],1])
+        ecoords = []
+        for i in range(0, len(hull_data)):
+            ecoords.append([hull_data[i][0], hull_data[i][1], 1])
         ecoords.append(ecoords[0])
         return ecoords
 
     ######################################################################
 
-    
+
 if __name__ == '__main__':
-    my_hull=hull2D()
-    p = [(1,1),(0,3),(0,0),(4,5),(10,10)]
+    my_hull = hull2D()
+    p = [(1, 1), (0, 3), (0, 0), (4, 5), (10, 10)]
     c = my_hull.convex_hull(p)
     print(p)
     print(c)

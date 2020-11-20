@@ -31,9 +31,11 @@ class LaserSpeed:
 
     @staticmethod
     def get_speed_from_code(speed_code, board="M2"):
-        code_value, gear, step_value, diagonal, raster_step = LaserSpeed.parse_speed_code(speed_code)
+        code_value, gear, step_value, diagonal, raster_step = LaserSpeed.parse_speed_code(
+            speed_code)
         # b, m, gear = LaserSpeed.get_gearing(board, code_value, raster_step == 0)
-        b, m, gear = LaserSpeed.get_gearing(board, gear=gear, uses_raster_step=raster_step != 0)
+        b, m, gear = LaserSpeed.get_gearing(
+            board, gear=gear, uses_raster_step=raster_step != 0)
         return LaserSpeed.get_speed_from_value(code_value, b, m)
 
     @staticmethod
@@ -52,8 +54,10 @@ class LaserSpeed:
         :return: speed code produced.
         """
         if mm_per_second > 240 and raster_step == 0:
-            mm_per_second = 19.05  # Arbitrary default speed for out range value.
-        b, m, gear = LaserSpeed.get_gearing(board, mm_per_second, raster_step != 0, gear)
+            # Arbitrary default speed for out range value.
+            mm_per_second = 19.05
+        b, m, gear = LaserSpeed.get_gearing(
+            board, mm_per_second, raster_step != 0, gear)
 
         speed_value = LaserSpeed.get_value_from_speed(mm_per_second, b, m)
         if (speed_value - round(speed_value)) > 0.005:
@@ -215,7 +219,8 @@ class LaserSpeed:
     @staticmethod
     def get_gearing(board, mm_per_second=None, uses_raster_step=False, gear=None):
         if gear is None:
-            gear = LaserSpeed.get_gear_for_speed(mm_per_second, uses_raster_step)
+            gear = LaserSpeed.get_gear_for_speed(
+                mm_per_second, uses_raster_step)
         # A, B, B1, B2
         b_values = [64752.0, 64752.0, 64640.0, 64512.0]
         m = -2000.0
