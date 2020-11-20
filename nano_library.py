@@ -79,6 +79,12 @@ class K40_CLASS:
                       70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 166, 130]
         self.USB_Location = None
 
+    def set_n_timeouts(self, value):
+        self.n_timeouts = value
+
+    def set_timeout(self, value):
+        self.timeout = value
+
     def say_hello(self):
         cnt = 0
         status_timeouts = self.n_timeouts

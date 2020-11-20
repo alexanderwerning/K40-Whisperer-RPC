@@ -2729,7 +2729,7 @@ class Application(Frame):
                 if Xscale != 1.0 or Yscale != 1.0:
                     dxmils = int(round(dxmils * Xscale))
                     dymils = int(round(dymils * Yscale))
-                self.k40.n_timeouts = 10
+                self.k40.set_n_timeouts(10)
 
                 if self.rotary.get() and float(self.rapid_feed.get()):
                     self.slow_jog(int(dxmils), int(dymils))
@@ -3412,8 +3412,8 @@ class Application(Frame):
     def send_egv_data(self, data, num_passes=1, output_filename=None):
         pre_process_CRC = self.pre_pr_crc.get()
         if self.k40 != None:
-            self.k40.timeout = int(float(self.t_timeout.get()))
-            self.k40.n_timeouts = int(float(self.n_timeouts.get()))
+            self.k40.set_timeout(int(float(self.t_timeout.get())))
+            self.k40.set_n_timeouts(int(float(self.n_timeouts.get())))
             time_start = time()
             self.k40.send_data(data, self.update_gui, self.stop,
                                num_passes, pre_process_CRC, wait_for_laser=True)

@@ -40,8 +40,8 @@ if __name__ == "__main__":
         else:
             k40 = K40_CLASS()
 
-        server.register_function(k40.n_timeouts)
-        server.register_function(k40.timeout)
+        server.register_function(k40.set_n_timeouts)
+        server.register_function(k40.set_timeout)
         server.register_function(k40.rapid_move)
         server.register_function(k40.send_data)
         server.register_function(k40.home_position)
