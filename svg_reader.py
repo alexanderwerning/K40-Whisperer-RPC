@@ -762,9 +762,9 @@ class SVG_READER(inkex.Effect):
             raise Exception("Temp dir failed to delete:\n%s" %(tmp_dir) )
 
 
-    def set_size(self,pxpi,viewbox):
-        width_mm = viewbox[2]/pxpi*25.4
-        height_mm = viewbox[3]/pxpi*25.4
+    def set_size(self,pxpi,viewbox, scale):
+        width_mm = viewbox[2]/pxpi*25.4*scale
+        height_mm = viewbox[3]/pxpi*25.4*scale
         self.document.getroot().set('width', '%fmm' %(width_mm))
         self.document.getroot().set('height','%fmm' %(height_mm))
         self.document.getroot().set('viewBox', '%f %f %f %f' %(viewbox[0],viewbox[1],viewbox[2],viewbox[3]))

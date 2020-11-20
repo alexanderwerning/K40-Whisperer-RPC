@@ -22,6 +22,7 @@ title_text = "K40 Whisperer V"+version
 
 import sys
 from math import *
+from pathlib import Path
 from egv import egv
 from nano_library import K40_CLASS
 from dxf import DXF_CLASS
@@ -213,6 +214,7 @@ class Application(Frame):
         self.rotate       = BooleanVar()
         self.negate       = BooleanVar()
         self.inputCSYS    = BooleanVar()
+        self.design_scale = DoubleVar()
         self.HomeUR       = BooleanVar()
         self.engraveUP    = BooleanVar()
         self.init_home    = BooleanVar()
@@ -301,13 +303,14 @@ class Application(Frame):
         self.include_Vcut.set(1)
         self.include_Gcde.set(1)
         self.include_Time.set(0)
-        self.advanced.set(0)
+        self.advanced.set(1)
         
         self.halftone.set(1)
         self.mirror.set(0)
         self.rotate.set(0)
         self.negate.set(0)
         self.inputCSYS.set(0)
+        self.design_scale.set(1.0)
         self.HomeUR.set(0)
         self.engraveUP.set(0)
         self.init_home.set(1)
@@ -510,27 +513,35 @@ class Application(Frame):
         self.Stop_Button       = Button(self.master,text="Pause/Stop",      command=self.Stop)
 
         try:
-            self.left_image  = self.Imaging_Free(Image.open("left.png"),bg=None)
-            self.right_image = self.Imaging_Free(Image.open("right.png"),bg=None)
-            self.up_image    = self.Imaging_Free(Image.open("up.png"),bg=None)
-            self.down_image  = self.Imaging_Free(Image.open("down.png"),bg=None)
+            self.left_image  = self.Imaging_Free(Image.open(Path("icons/left.png")),bg=None)
+            self.right_image = self.Imaging_Free(Image.open(Path("icons/right.png")),bg=None)
+            self.up_image    = self.Imaging_Free(Image.open(Path("icons/up.png")),bg=None)
+            self.down_image  = self.Imaging_Free(Image.open(Path("icons/down.png")),bg=None)
             
             self.Right_Button   = Button(self.master,image=self.right_image, command=self.Move_Right)
             self.Left_Button    = Button(self.master,image=self.left_image,  command=self.Move_Left)
             self.Up_Button      = Button(self.master,image=self.up_image,    command=self.Move_Up)
             self.Down_Button    = Button(self.master,image=self.down_image,  command=self.Move_Down)
 
-            self.UL_image  = self.Imaging_Free(Image.open("UL.png"),bg=None)
-            self.UR_image  = self.Imaging_Free(Image.open("UR.png"),bg=None)
-            self.LR_image  = self.Imaging_Free(Image.open("LR.png"),bg=None)
-            self.LL_image  = self.Imaging_Free(Image.open("LL.png"),bg=None)
-            self.CC_image  = self.Imaging_Free(Image.open("CC.png"),bg=None)
+            self.UL_image  = self.Imaging_Free(Image.open(Path("icons/UL.png")),bg=None)
+            self.UC_image  = self.Imaging_Free(Image.open(Path("icons/UC.png")),bg=None)
+            self.UR_image  = self.Imaging_Free(Image.open(Path("icons/UR.png")),bg=None)
+            self.CL_image  = self.Imaging_Free(Image.open(Path("icons/CL.png")),bg=None)
+            self.CC_image  = self.Imaging_Free(Image.open(Path("icons/CC.png")),bg=None)
+            self.CR_image  = self.Imaging_Free(Image.open(Path("icons/CR.png")),bg=None)
+            self.LL_image  = self.Imaging_Free(Image.open(Path("icons/LL.png")),bg=None)
+            self.LC_image  = self.Imaging_Free(Image.open(Path("icons/LC.png")),bg=None)
+            self.LR_image  = self.Imaging_Free(Image.open(Path("icons/LR.png")),bg=None)
             
             self.UL_Button = Button(self.master,image=self.UL_image, command=self.Move_UL)
+            self.UC_Button = Button(self.master,image=self.UM_image, command=self.Move_UC)
             self.UR_Button = Button(self.master,image=self.UR_image, command=self.Move_UR)
+            self.CL_Button = Button(self.master,image=self.CL_image, command=self.Move_CL)
+            self.CC_Button = Button(self.master,image=self.CC_image, command=self.Move_CC)
+            self.CR_Button = Button(self.master,image=self.CR_image, command=self.Move_CR)
             self.LR_Button = Button(self.master,image=self.LR_image, command=self.Move_LR)
             self.LL_Button = Button(self.master,image=self.LL_image, command=self.Move_LL)
-            self.CC_Button = Button(self.master,image=self.CC_image, command=self.Move_CC)
+            self.LC_Button = Button(self.master,image=self.LM_image, command=self.Move_LC)
             
         except:
             self.Right_Button   = Button(self.master,text=">",          command=self.Move_Right)
@@ -538,11 +549,15 @@ class Application(Frame):
             self.Up_Button      = Button(self.master,text="^",          command=self.Move_Up)
             self.Down_Button    = Button(self.master,text="v",          command=self.Move_Down)
 
-            self.UL_Button = Button(self.master,text=" ", command=self.Move_UL)
-            self.UR_Button = Button(self.master,text=" ", command=self.Move_UR)
-            self.LR_Button = Button(self.master,text=" ", command=self.Move_LR)
-            self.LL_Button = Button(self.master,text=" ", command=self.Move_LL)
-            self.CC_Button = Button(self.master,text=" ", command=self.Move_CC)
+            self.UL_Button = Button(self.master,text="┌", command=self.Move_UL)
+            self.UC_Button = Button(self.master,text="┬", command=self.Move_UC)
+            self.UR_Button = Button(self.master,text="┐", command=self.Move_UR)
+            self.CL_Button = Button(self.master,text="├", command=self.Move_CL)
+            self.CC_Button = Button(self.master,text="┼", command=self.Move_CC)
+            self.CR_Button = Button(self.master,text="┤", command=self.Move_CR)
+            self.LL_Button = Button(self.master,text="└", command=self.Move_LL)
+            self.LC_Button = Button(self.master,text="┴", command=self.Move_LC)
+            self.LR_Button = Button(self.master,text="┘", command=self.Move_LR)
 
         self.Label_Step   = Label(self.master,text="Jog Step", anchor=CENTER )
         self.Label_Step_u = Label(self.master,textvariable=self.units, anchor=W)
@@ -598,6 +613,12 @@ class Application(Frame):
         self.Checkbutton_inputCSYS_adv = Checkbutton(self.master,text=" ", anchor=W)
         self.Checkbutton_inputCSYS_adv.configure(variable=self.inputCSYS)
         self.inputCSYS.trace_variable("w", self.menu_View_inputCSYS_Refresh_Callback)
+
+        self.Label_Design_Scale = Label(self.master,text="Design Scale")
+        self.Entry_Design_Scale   = Entry(self.master,width="15")
+        self.Entry_Design_Scale.configure(textvariable=self.design_scale,justify='center',fg="black")
+        self.design_scale.trace_variable("w", self.Entry_Design_Scale_Callback)
+        self.NormalColor =  self.Entry_Design_Scale.cget('bg')
 
         self.Label_Inside_First_adv = Label(self.master,text="Cut Inside First")
         self.Checkbutton_Inside_First_adv = Checkbutton(self.master,text=" ", anchor=W)
@@ -1864,25 +1885,25 @@ class Application(Frame):
                 while c!="%" and c:
                     value1 = value1 + c
                     c = f.read(1)
-                y_start_mils = int(value1) 
+                y_start_mils = int(value1)*self.design_scale.get()
                 ## Read 2nd Value
                 c = f.read(1)
                 while c!="%" and c:
                     value2 = value2 + c
                     c = f.read(1)
-                x_start_mils = int(value2)   
+                x_start_mils = int(value2)*self.design_scale.get() 
                 ## Read 3rd Value
                 c = f.read(1)
                 while c!="%" and c:
                     value3 = value3 + c
                     c = f.read(1)
-                y_end_mils = int(value3)
+                y_end_mils = int(value3)*self.design_scale.get()
                 ## Read 4th Value
                 c = f.read(1)
                 while c!="%" and c:
                     value4 = value4 + c
                     c = f.read(1)
-                x_end_mils = int(value4)
+                x_end_mils = int(value4)*self.design_scale.get()
                 break
 
             ## Read Data
@@ -1894,7 +1915,7 @@ class Application(Frame):
                     pass
                 else:
                     data=data+"%c" %c
-                    EGV_data.append(ord(c))
+                    EGV_data.append(ord(c)*self.design_scale.get())
                     
         if ( (x_end_mils != 0) or (y_end_mils != 0) ):
             n_passes=1
@@ -1935,7 +1956,7 @@ class Application(Frame):
         self.SVG_FILE = filemname
         svg_reader =  SVG_READER()
         svg_reader.set_inkscape_path(self.inkscape_path.get())
-        self.input_dpi = 1000
+        self.input_dpi = 1000*self.design_scale.get()
         svg_reader.image_dpi = self.input_dpi
         svg_reader.timout = int(float( self.ink_timeout.get())*60.0) 
         dialog_pxpi    = None
@@ -1959,7 +1980,7 @@ class Application(Frame):
                     
                     dialog_pxpi,dialog_viewbox = pxpi_dialog.result
                     svg_reader.parse_svg(self.SVG_FILE)
-                    svg_reader.set_size(dialog_pxpi,dialog_viewbox)
+                    svg_reader.set_size(dialog_pxpi,dialog_viewbox, self.design_scale.get())
                     svg_reader.make_paths()
                     
             except SVG_TEXT_EXCEPTION as e:
@@ -1969,7 +1990,7 @@ class Application(Frame):
                 self.master.update()
                 svg_reader.parse_svg(self.SVG_FILE)
                 if dialog_pxpi != None and dialog_viewbox != None:
-                    svg_reader.set_size(dialog_pxpi,dialog_viewbox)
+                    svg_reader.set_size(dialog_pxpi,dialog_viewbox, self.design_scale.get())
                 svg_reader.make_paths(txt2paths=True)
                 
         except Exception as e:
@@ -1984,8 +2005,8 @@ class Application(Frame):
             self.statusMessage.set("Unable To open SVG File: %s" %(filemname))
             debug_message(traceback.format_exc())
             return
-        xmax = svg_reader.Xsize/25.4
-        ymax = svg_reader.Ysize/25.4
+        xmax = svg_reader.Xsize/25.4*self.design_scale.get()
+        ymax = svg_reader.Ysize/25.4*self.design_scale.get()
         xmin = 0
         ymin = 0
 
@@ -1994,8 +2015,8 @@ class Application(Frame):
         ##########################
         ###   Create ECOORDS   ###
         ##########################
-        self.VcutData.make_ecoords(svg_reader.cut_lines,scale=1/25.4)
-        self.VengData.make_ecoords(svg_reader.eng_lines,scale=1/25.4)
+        self.VcutData.make_ecoords(svg_reader.cut_lines,scale=1/25.4*self.design_scale.get())
+        self.VengData.make_ecoords(svg_reader.eng_lines,scale=1/25.4*self.design_scale.get())
 
         ##########################
         ###   Load Image       ###
@@ -2363,7 +2384,7 @@ class Application(Frame):
             else:
                 return    
 
-            lin_tol = tolerance / dxf_scale
+            lin_tol = tolerance / dxf_scale * self.design_scale.get()
             dxf_import.GET_DXF_DATA(fd,lin_tol=lin_tol,get_units=False,units=None)
             fd.close()
         #except StandardError as e:
@@ -2656,6 +2677,17 @@ class Application(Frame):
             self.move_head_window_temporary([DX,0.0])
         else:
             pass
+    
+    def Move_UC(self,dummy=None):
+        xmin,xmax,ymin,ymax = self.Get_Design_Bounds()
+        Xnew = self.laserX + (xmax-xmin)/2
+        DX = round((xmax-xmin)*1000.0)/2
+            
+        (Xsize,Ysize)=self.LASER_Size()
+        if Xnew <= Xsize+.001:
+            self.move_head_window_temporary([DX,0.0])
+        else:
+            pass
 
     def Move_UR(self,dummy=None):
         xmin,xmax,ymin,ymax = self.Get_Design_Bounds()
@@ -2671,25 +2703,8 @@ class Application(Frame):
             self.move_head_window_temporary([DX,0.0])
         else:
             pass
-    
-    def Move_LR(self,dummy=None):
-        xmin,xmax,ymin,ymax = self.Get_Design_Bounds()
-        if self.HomeUR.get():
-            Xnew = self.laserX
-            DX = 0
-        else:
-            Xnew = self.laserX + (xmax-xmin) 
-            DX = round((xmax-xmin)*1000.0)
-            
-        Ynew = self.laserY - (ymax-ymin)
-        (Xsize,Ysize)=self.LASER_Size()
-        if Xnew <= Xsize+.001 and Ynew >= -Ysize-.001:
-            DY = round((ymax-ymin)*1000.0)
-            self.move_head_window_temporary([DX,-DY])
-        else:
-            pass
-    
-    def Move_LL(self,dummy=None):
+
+    def Move_CL(self,dummy=None):
         xmin,xmax,ymin,ymax = self.Get_Design_Bounds()
         if self.HomeUR.get():
             Xnew = self.laserX + (xmax-xmin)
@@ -2698,10 +2713,10 @@ class Application(Frame):
             Xnew = self.laserX
             DX = 0
             
-        Ynew = self.laserY - (ymax-ymin)
+        Ynew = self.laserY - (ymax-ymin)/2
         (Xsize,Ysize)=self.LASER_Size()
         if Xnew <= Xsize+.001 and Ynew >= -Ysize-.001:
-            DY = round((ymax-ymin)*1000.0)
+            DY = round((ymax-ymin)*1000.0/2)
             self.move_head_window_temporary([DX,-DY])
         else:
             pass
@@ -2720,6 +2735,70 @@ class Application(Frame):
         (Xsize,Ysize)=self.LASER_Size()
         if Xnew <= Xsize+.001 and Ynew >= -Ysize-.001: 
             DY = round((ymax-ymin)/2.0*1000.0)
+            self.move_head_window_temporary([DX,-DY])
+        else:
+            pass
+
+    def Move_CR(self,dummy=None):
+        xmin,xmax,ymin,ymax = self.Get_Design_Bounds()
+        if self.HomeUR.get():
+            Xnew = self.laserX
+            DX = 0
+        else:
+            Xnew = self.laserX + (xmax-xmin) 
+            DX = round((xmax-xmin)*1000.0)
+            
+        Ynew = self.laserY - (ymax-ymin)/2
+        (Xsize,Ysize)=self.LASER_Size()
+        if Xnew <= Xsize+.001 and Ynew >= -Ysize-.001:
+            DY = round((ymax-ymin)*1000.0/2)
+            self.move_head_window_temporary([DX,-DY])
+        else:
+            pass
+
+    def Move_LL(self,dummy=None):
+        xmin,xmax,ymin,ymax = self.Get_Design_Bounds()
+        if self.HomeUR.get():
+            Xnew = self.laserX + (xmax-xmin)
+            DX = round((xmax-xmin)*1000.0)
+        else:
+            Xnew = self.laserX
+            DX = 0
+            
+        Ynew = self.laserY - (ymax-ymin)
+        (Xsize,Ysize)=self.LASER_Size()
+        if Xnew <= Xsize+.001 and Ynew >= -Ysize-.001:
+            DY = round((ymax-ymin)*1000.0)
+            self.move_head_window_temporary([DX,-DY])
+        else:
+            pass
+
+    def Move_LC(self,dummy=None):
+        xmin,xmax,ymin,ymax = self.Get_Design_Bounds()
+        Xnew = self.laserX + (xmax-xmin)/2
+        DX = round((xmax-xmin)*1000.0)/2
+            
+        Ynew = self.laserY - (ymax-ymin)
+        (Xsize,Ysize)=self.LASER_Size()
+        if Xnew <= Xsize+.001 and Ynew >= -Ysize-.001:
+            DY = round((ymax-ymin)*1000.0)
+            self.move_head_window_temporary([DX,-DY])
+        else:
+            pass
+
+    def Move_LR(self,dummy=None):
+        xmin,xmax,ymin,ymax = self.Get_Design_Bounds()
+        if self.HomeUR.get():
+            Xnew = self.laserX
+            DX = 0
+        else:
+            Xnew = self.laserX + (xmax-xmin) 
+            DX = round((xmax-xmin)*1000.0)
+            
+        Ynew = self.laserY - (ymax-ymin)
+        (Xsize,Ysize)=self.LASER_Size()
+        if Xnew <= Xsize+.001 and Ynew >= -Ysize-.001:
+            DY = round((ymax-ymin)*1000.0)
             self.move_head_window_temporary([DX,-DY])
         else:
             pass
@@ -3677,8 +3756,8 @@ class Application(Frame):
     def Stop(self,event=None):
         if self.stop[0]==True:
             return
-        line1 = "Sending data to the laser from K40 Whisperer is currently Paused."
-        line2 = "Press \"OK\" to abort any jobs currently running."
+        line1 = "Do you want to abort all jobs?"
+        line2 = "Sending data to the laser from K40 Whisperer is currently Paused."
         line3 = "Press \"Cancel\" to resume."
         if self.k40 != None:
             self.k40.pause_un_pause()
@@ -3820,6 +3899,9 @@ class Application(Frame):
                                   U_display))
 
         self.statusbar.configure( bg = 'white' )
+    
+    def Entry_Design_Scale_Callback(self, varname, index, mode):
+        self.menu_Reload_Design()
         
     def menu_Inside_First_Callback(self, varName, index, mode):
         if self.GcodeData.ecoords != []:
@@ -3952,16 +4034,25 @@ class Application(Frame):
                     bsz=40
                     xoffst=35
                     self.UL_Button.place    (x=xoffst+12      ,  y=Yloc, width=bsz, height=bsz)
-                    self.Up_Button.place    (x=xoffst+12+bsz  ,  y=Yloc, width=bsz, height=bsz)
+                    self.UC_Button.place    (x=xoffst+12+bsz,  y=Yloc, width=bsz, height=bsz)
                     self.UR_Button.place    (x=xoffst+12+bsz*2,  y=Yloc, width=bsz, height=bsz)
+
                     Yloc=Yloc+bsz
-                    self.Left_Button.place  (x=xoffst+12      ,y=Yloc, width=bsz, height=bsz)
+                    self.CL_Button.place    (x=xoffst+12  ,y=Yloc, width=bsz, height=bsz)
                     self.CC_Button.place    (x=xoffst+12+bsz  ,y=Yloc, width=bsz, height=bsz)
-                    self.Right_Button.place (x=xoffst+12+bsz*2,y=Yloc, width=bsz, height=bsz)
+                    self.CR_Button.place    (x=xoffst+12+bsz*2  ,y=Yloc, width=bsz, height=bsz)
                     Yloc=Yloc+bsz
                     self.LL_Button.place    (x=xoffst+12      ,  y=Yloc, width=bsz, height=bsz)
-                    self.Down_Button.place  (x=xoffst+12+bsz  ,  y=Yloc, width=bsz, height=bsz)
+                    self.LC_Button.place    (x=xoffst+12+bsz,  y=Yloc, width=bsz, height=bsz)
                     self.LR_Button.place    (x=xoffst+12+bsz*2,  y=Yloc, width=bsz, height=bsz)
+
+                    Yloc=Yloc+bsz
+                    self.Up_Button.place    (x=xoffst+12+bsz  ,  y=Yloc, width=bsz, height=bsz)
+                    Yloc=Yloc+bsz
+                    self.Left_Button.place  (x=xoffst+12      ,y=Yloc, width=bsz, height=bsz)
+                    self.Right_Button.place (x=xoffst+12+bsz*2,y=Yloc, width=bsz, height=bsz)
+                    Yloc=Yloc+bsz
+                    self.Down_Button.place  (x=xoffst+12+bsz  ,  y=Yloc, width=bsz, height=bsz)
             
                 
                     Yloc=Yloc+bsz
@@ -3996,6 +4087,8 @@ class Application(Frame):
                     self.LL_Button.place_forget()
                     self.Down_Button.place_forget()
                     self.LR_Button.place_forget()
+                    self.LM_Button.place.forget()
+                    self.UM_Button.place.forget()
                     self.Label_GoToX.place_forget()
                     self.Label_GoToY.place_forget()
                     self.GoTo_Button.place_forget()
@@ -4120,6 +4213,10 @@ class Application(Frame):
                         adv_Yloc=adv_Yloc+25
                         self.Label_inputCSYS_adv.place(x=Xadvanced, y=adv_Yloc, width=w_label_adv, height=21)
                         self.Checkbutton_inputCSYS_adv.place(x=Xadvanced+w_label_adv+2, y=adv_Yloc, width=25, height=23)
+
+                        adv_Yloc=adv_Yloc+25
+                        self.Label_Design_Scale.place(x=Xadvanced, y=adv_Yloc, width=w_label_adv, height=21)
+                        self.Entry_Design_Scale.place(x=Xadvanced+w_label_adv+2, y=adv_Yloc, width=w_entry, height=23)
                     
                         adv_Yloc=adv_Yloc+25
                         self.separator_adv3.place(x=Xadvanced, y=adv_Yloc,width=wadv_use, height=2)
