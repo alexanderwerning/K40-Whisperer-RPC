@@ -2,13 +2,10 @@
 #                         Choose Units Dialog                                  #
 ################################################################################
 
-if VERSION < 3:
-    import tkinter.simpledialog
-else:
-    import tkinter.simpledialog as tkSimpleDialog
+import tkinter.simpledialog as tkSimpleDialog
 
 
-class UnitsDialog(tkinter.simpledialog.Dialog):
+class UnitsDialog(tkSimpleDialog.Dialog):
     def body(self, master):
         self.resizable(0, 0)
         self.title('Units')
@@ -48,7 +45,7 @@ class toplevel_dummy():
         return False
 
 
-class pxpiDialog(tkinter.simpledialog.Dialog):
+class pxpiDialog(tkSimpleDialog.Dialog):
 
     def __init__(self,
                  parent,

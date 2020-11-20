@@ -26,7 +26,8 @@ import operator
 import math
 import getopt
 import binascii
-from util import format_time
+from utils import *
+from dialog import *
 from svg_reader import SVG_PXPI_EXCEPTION, SVG_READER, SVG_TEXT_EXCEPTION
 from nano_library import K40_CLASS
 from interpolate import interpolate
@@ -53,25 +54,13 @@ DEBUG = False
 if DEBUG:
     import inspect
 
-VERSION = sys.version_info[0]
 LOAD_MSG = ""
 
-if VERSION == 3:
-    import tkinter.messagebox
-    from tkinter import *
-    from tkinter.filedialog import *
-    MAXINT = sys.maxsize
+import tkinter.messagebox
+from tkinter import *
+from tkinter.filedialog import *
+MAXINT = sys.maxsize
 
-else:
-    import tkinter.messagebox
-    from tkinter import *
-    from tkinter.filedialog import *
-    MAXINT = sys.maxsize
-
-if VERSION < 3 and sys.version_info[1] < 6:
-    def next(item):
-        # return item.next()
-        return item.__next__()
 
 try:
     import psyco
@@ -2503,7 +2492,7 @@ class Application(Frame):
             Xnew = self.laserX
             DX = 0
 
-        (Xsize, Ysize) = LASER_Size(self.LaserXsize.get(), self.LaserYsize.get())
+        (Xsize, Ysize) = LASER_Size(self.units.get(), self.LaserXsize.get(), self.LaserYsize.get())
         if Xnew <= Xsize+.001:
             self.move_head_window_temporary([DX, 0.0])
         else:
@@ -2514,7 +2503,7 @@ class Application(Frame):
         Xnew = self.laserX + (xmax-xmin)/2
         DX = round((xmax-xmin)*1000.0)/2
 
-        (Xsize, Ysize) = LASER_Size(self.LaserXsize.get(), self.LaserYsize.get())
+        (Xsize, Ysize) = LASER_Size(self.units.get(), self.LaserXsize.get(), self.LaserYsize.get())
         if Xnew <= Xsize+.001:
             self.move_head_window_temporary([DX, 0.0])
         else:
@@ -2529,7 +2518,7 @@ class Application(Frame):
             Xnew = self.laserX + (xmax-xmin)
             DX = round((xmax-xmin)*1000.0)
 
-        (Xsize, Ysize) = LASER_Size(self.LaserXsize.get(), self.LaserYsize.get())
+        (Xsize, Ysize) = LASER_Size(self.units.get(), self.LaserXsize.get(), self.LaserYsize.get())
         if Xnew <= Xsize+.001:
             self.move_head_window_temporary([DX, 0.0])
         else:
@@ -2545,7 +2534,7 @@ class Application(Frame):
             DX = 0
 
         Ynew = self.laserY - (ymax-ymin)/2
-        (Xsize, Ysize) = LASER_Size(self.LaserXsize.get(), self.LaserYsize.get())
+        (Xsize, Ysize) = LASER_Size(self.units.get(), self.LaserXsize.get(), self.LaserYsize.get())
         if Xnew <= Xsize+.001 and Ynew >= -Ysize-.001:
             DY = round((ymax-ymin)*1000.0/2)
             self.move_head_window_temporary([DX, -DY])
@@ -2562,7 +2551,7 @@ class Application(Frame):
             DX = round((xmax-xmin)/2.0*1000.0)
 
         Ynew = self.laserY - (ymax-ymin)/2.0
-        (Xsize, Ysize) = LASER_Size(self.LaserXsize.get(), self.LaserYsize.get())
+        (Xsize, Ysize) = LASER_Size(self.units.get(), self.LaserXsize.get(), self.LaserYsize.get())
         if Xnew <= Xsize+.001 and Ynew >= -Ysize-.001:
             DY = round((ymax-ymin)/2.0*1000.0)
             self.move_head_window_temporary([DX, -DY])
@@ -2579,7 +2568,7 @@ class Application(Frame):
             DX = round((xmax-xmin)*1000.0)
 
         Ynew = self.laserY - (ymax-ymin)/2
-        (Xsize, Ysize) = LASER_Size(self.LaserXsize.get(), self.LaserYsize.get())
+        (Xsize, Ysize) = LASER_Size(self.units.get(), self.LaserXsize.get(), self.LaserYsize.get())
         if Xnew <= Xsize+.001 and Ynew >= -Ysize-.001:
             DY = round((ymax-ymin)*1000.0/2)
             self.move_head_window_temporary([DX, -DY])
@@ -2596,7 +2585,7 @@ class Application(Frame):
             DX = 0
 
         Ynew = self.laserY - (ymax-ymin)
-        (Xsize, Ysize) = LASER_Size(self.LaserXsize.get(), self.LaserYsize.get())
+        (Xsize, Ysize) = LASER_Size(self.units.get(), self.LaserXsize.get(), self.LaserYsize.get())
         if Xnew <= Xsize+.001 and Ynew >= -Ysize-.001:
             DY = round((ymax-ymin)*1000.0)
             self.move_head_window_temporary([DX, -DY])
@@ -2609,7 +2598,7 @@ class Application(Frame):
         DX = round((xmax-xmin)*1000.0)/2
 
         Ynew = self.laserY - (ymax-ymin)
-        (Xsize, Ysize) = LASER_Size(self.LaserXsize.get(), self.LaserYsize.get())
+        (Xsize, Ysize) = LASER_Size(self.units.get(), self.LaserXsize.get(), self.LaserYsize.get())
         if Xnew <= Xsize+.001 and Ynew >= -Ysize-.001:
             DY = round((ymax-ymin)*1000.0)
             self.move_head_window_temporary([DX, -DY])
@@ -2626,7 +2615,7 @@ class Application(Frame):
             DX = round((xmax-xmin)*1000.0)
 
         Ynew = self.laserY - (ymax-ymin)
-        (Xsize, Ysize) = LASER_Size(self.LaserXsize.get(), self.LaserYsize.get())
+        (Xsize, Ysize) = LASER_Size(self.units.get(), self.LaserXsize.get(), self.LaserYsize.get())
         if Xnew <= Xsize+.001 and Ynew >= -Ysize-.001:
             DY = round((ymax-ymin)*1000.0)
             self.move_head_window_temporary([DX, -DY])

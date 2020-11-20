@@ -1,5 +1,7 @@
 """This module collects all functions pulled out from k40_whisperer.py"""
 
+DEBUG = False
+QUIET = False
 
 def format_time(time_in_seconds):
     # format the duration from seconds to something human readable
@@ -63,10 +65,10 @@ def generate_bezier(M1, M2, w, n=100):
     return x, y
 
 
-def LASER_Size(laserXsize, laserYsize):
+def LASER_Size(units, laserXsize, laserYsize):
     MINX = 0.0
     MAXY = 0.0
-    if self.units.get() == "in":
+    if units == "in":
         MAXX = float(laserXsize)
         MINY = -float(laserYsize)
     else:
@@ -219,7 +221,6 @@ def point_inside_polygon(x, y, poly):
 #            depending on what options are enabled                             #
 ################################################################################
 def fmessage(text, newline=True):
-    global QUIET
     if (not QUIET):
         if newline == True:
             try:
@@ -244,11 +245,7 @@ def fmessage(text, newline=True):
 
 def message_box(title, message):
     title = "%s (K40 Whisperer V%s)" % (title, version)
-    if VERSION == 3:
-        tkinter.messagebox.showinfo(title, message)
-    else:
-        tkinter.messagebox.showinfo(title, message)
-        pass
+    tkinter.messagebox.showinfo(title, message)
 
 ################################################################################
 #                          Message Box ask OK/Cancel                           #
@@ -256,10 +253,7 @@ def message_box(title, message):
 
 
 def message_ask_ok_cancel(title, mess):
-    if VERSION == 3:
-        result = tkinter.messagebox.askokcancel(title, mess)
-    else:
-        result = tkinter.messagebox.askokcancel(title, mess)
+    result = tkinter.messagebox.askokcancel(title, mess)
     return result
 
 ################################################################################
@@ -268,11 +262,6 @@ def message_ask_ok_cancel(title, mess):
 
 
 def debug_message(message):
-    global DEBUG
     title = "Debug Message"
     if DEBUG:
-        if VERSION == 3:
-            tkinter.messagebox.showinfo(title, message)
-        else:
-            tkinter.messagebox.showinfo(title, message)
-            pass
+        tkinter.messagebox.showinfo(title, message)
