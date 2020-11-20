@@ -22,12 +22,6 @@ class Server(object):
     def serve_forever(self):
         self.server.serve_forever()
 
-    def __enter__(self):
-        self.server.__enter__()
-
-    def __exit__(self ,type, value, traceback):
-        self.server.__exit__(type, value, traceback)
-
 
 class DummyObject:
     def _dispatch(self, method, params):
@@ -40,25 +34,25 @@ if __name__ == "__main__":
 
     while True:
         # Create server
-        with Server(('0.0.0.0', 8000)) as server:
-            if dry_run:
-                k40 = DummyObject()
-            else:
-                k40 = K40_CLASS()
+        server = Server(('0.0.0.0', 8000))
+        if dry_run:
+            k40 = DummyObject()
+        else:
+            k40 = K40_CLASS()
 
-            server.register_function(k40.n_timeouts)
-            server.register_function(k40.timeout)
-            server.register_function(k40.rapid_move)
-            server.register_function(k40.send_data)
-            server.register_function(k40.home_position)
-            server.register_function(k40.reset_usb)
-            server.register_function(k40.pause_un_pause)
-            server.register_function(k40.release_usb)
-            server.register_function(k40.initialize_device)
-            server.register_function(k40.say_hello)
-            server.register_function(k40.unlock_rail)
+        server.register_function(k40.n_timeouts)
+        server.register_function(k40.timeout)
+        server.register_function(k40.rapid_move)
+        server.register_function(k40.send_data)
+        server.register_function(k40.home_position)
+        server.register_function(k40.reset_usb)
+        server.register_function(k40.pause_un_pause)
+        server.register_function(k40.release_usb)
+        server.register_function(k40.initialize_device)
+        server.register_function(k40.say_hello)
+        server.register_function(k40.unlock_rail)
 
-            # Run the server's main loop
-            server.serve_forever()
+        # Run the server's main loop
+        server.serve_forever()
 
         print("Server crashed. Restarting...")
