@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-This script comunicated with the K40 Laser Cutter.
+This script communicates with the K40 Laser Cutter.
 
 Copyright (C) 2017-2020 Scorch www.scorchworks.com
 
@@ -33,7 +33,24 @@ import traceback
 from windowsinhibitor import WindowsInhibitor
 from time import time
 
-##############################################################################
+
+#######################################################################
+#  The one wire CRC algorithm is derived from the OneWire.cpp Library
+#  The latest version of this library may be found at:
+#  http://www.pjrc.com/teensy/td_libs_OneWire.html
+#######################################################################
+def OneWireCRC(line):
+    crc = 0
+    for i in range(len(line)):
+        inbyte = line[i]
+        for j in range(8):
+            mix = (crc ^ inbyte) & 0x01
+            crc >>= 1
+            if (mix):
+                crc ^= 0x8C
+            inbyte >>= 1
+    return crc
+#######################################################################
 
 
 class K40_CLASS:
@@ -134,24 +151,6 @@ class K40_CLASS:
     def pause_un_pause(self):
         self.send_data([ord('P'), ord('N')])
 
-    #######################################################################
-    #  The one wire CRC algorithm is derived from the OneWire.cpp Library
-    #  The latest version of this library may be found at:
-    #  http://www.pjrc.com/teensy/td_libs_OneWire.html
-    #######################################################################
-    def OneWireCRC(self, line):
-        crc = 0
-        for i in range(len(line)):
-            inbyte = line[i]
-            for j in range(8):
-                mix = (crc ^ inbyte) & 0x01
-                crc >>= 1
-                if (mix):
-                    crc ^= 0x8C
-                inbyte >>= 1
-        return crc
-    #######################################################################
-
     def none_function(self, dummy=None, bgcolor=None):
         # Don't delete this function (used in send_data)
         return False
@@ -185,7 +184,7 @@ class K40_CLASS:
             timestamp = 0
             for i in range(istart, len_data):
                 if cnt > 31:
-                    packet[-1] = self.OneWireCRC(packet[1:len(packet)-2])
+                    packet[-1] = OneWireCRC(packet[1:len(packet)-2])
                     stamp = int(3*time())  # update every 1/3 of a second
                     if not preprocess_crc:
                         self.send_packet_w_error_checking(
@@ -209,7 +208,7 @@ class K40_CLASS:
                         #raise Exception("Action Stopped by User.")
                 packet[cnt] = data[i]
                 cnt = cnt+1
-        packet[-1] = self.OneWireCRC(packet[1:len(packet)-2])
+        packet[-1] = OneWireCRC(packet[1:len(packet)-2])
         if not preprocess_crc:
             self.send_packet_w_error_checking(packet, update_gui, stop_calc)
         else:
@@ -395,13 +394,6 @@ class K40_CLASS:
             print(ctrlxfer)
 
         return self.USB_Location
-
-    def hex2dec(self, hex_in):
-        # format of "hex_in" is ["40","e7"]
-        dec_out = []
-        for a in hex_in:
-            dec_out.append(int(a, 16))
-        return dec_out
 
 
 if __name__ == "__main__":

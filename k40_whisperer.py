@@ -17,6 +17,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
+import xmlrpc.client
 from PIL import Image, ImageFilter, ImageOps
 from time import time
 import webbrowser
@@ -211,6 +212,8 @@ class Application(Frame):
         self.inside_first = BooleanVar()
         self.rotary = BooleanVar()
 
+        self.use_usb = BooleanVar()
+
         self.ht_size = StringVar()
         self.Reng_feed = StringVar()
         self.Veng_feed = StringVar()
@@ -294,6 +297,8 @@ class Application(Frame):
         self.pre_pr_crc.set(1)
         self.inside_first.set(1)
         self.rotary.set(0)
+
+        self.use_usb.set(False)
 
         self.ht_size.set(500)
 
@@ -678,6 +683,14 @@ class Application(Frame):
         self.Checkbutton_Rotary_Enable_adv = Checkbutton(self.master, text="")
         self.Checkbutton_Rotary_Enable_adv.configure(variable=self.rotary)
         self.rotary.trace_variable("w", self.Reset_RasterPath_and_Update_Time)
+
+        self.separator_adv4 = Frame(self.master, height=2, bd=1, relief=SUNKEN)
+
+        self.Label_Use_USB_Enable_adv = Label(
+            self.master, text="Use USB, not network")
+        self.Checkbutton_Use_USB_Enable_adv = Checkbutton(self.master, text="")
+        self.Checkbutton_Use_USB_Enable_adv.configure(variable=self.use_usb)
+        self.rotary.trace_variable("w", self.Initialize_Laser)
 
         #####
         self.separator_comb = Frame(self.master, height=2, bd=1, relief=SUNKEN)
@@ -3504,7 +3517,19 @@ class Application(Frame):
         self.Release_USB()
         self.k40 = None
         self.move_head_window_temporary([0.0, 0.0])
-        self.k40 = K40_CLASS()
+        if self.use_usb.get():
+            self.k40 = K40_CLASS()
+        else:
+            server_address_file = Path("server.dat")
+            if server_address_file.exists():
+                server_address = server_address_file.read_text()
+                try:
+                    self.k40 = xmlrpc.client.ServerProxy(server_address, allow_none=True)
+                except:
+                    pass
+            else:
+                self.k40 = None
+
         try:
             self.k40.initialize_device()
             self.k40.say_hello()
@@ -4007,9 +4032,18 @@ class Application(Frame):
                             x=Xadvanced, y=adv_Yloc, width=w_label_adv, height=21)
                         self.Checkbutton_Rotary_Enable_adv.place(
                             x=Xadvanced+w_label_adv+2, y=adv_Yloc, width=25, height=23)
+                        
+                        adv_Yloc = adv_Yloc+25
+                        self.separator_adv4.place(
+                            x=Xadvanced, y=adv_Yloc, width=wadv_use, height=2)
+                        
+                        adv_Yloc = adv_Yloc+25
+                        self.Label_Use_USB_Enable_adv.place(
+                            x=Xadvanced, y=adv_Yloc, width=w_label_adv, height=21)
+                        self.Checkbutton_Use_USB_Enable_adv.place(
+                            x=Xadvanced+w_label_adv+2, y=adv_Yloc, width=25, height=23)
+
                     else:
-                        # self.Label_Advanced_column.place_forget()
-                        # self.separator_adv.place_forget()
                         self.Label_Halftone_adv.place_forget()
                         self.Checkbutton_Halftone_adv.place_forget()
                         self.Label_Negate_adv.place_forget()
@@ -4026,6 +4060,7 @@ class Application(Frame):
                         self.Checkbutton_Inside_First_adv.place_forget()
                         self.Label_Rotary_Enable_adv.place_forget()
                         self.Checkbutton_Rotary_Enable_adv.place_forget()
+                        self.Checkbutton_Use_USB_Enable_adv.place_forget()
 
                     adv_Yloc = BUinit
                     self.Hide_Adv_Button.place(

@@ -19,4 +19,4 @@ python py2exe_setup.py py2exe
 rmdir /S /Q build
 move dist dist64
 robocopy icons dist64/icons /E
-:: pause
+pause
