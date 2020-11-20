@@ -1,5 +1,7 @@
 """This module collects all functions pulled out from k40_whisperer.py"""
 
+import tkinter
+
 DEBUG = False
 QUIET = False
 
@@ -119,7 +121,7 @@ def gcode_error_message(message):
     root.wait_window(error_report)
     return return_value.get()
 
-def Sort_Paths(self, ecoords, i_loop=2):
+def Sort_Paths(ecoords, i_loop=2):
     ##########################
     ###   find loop ends   ###
     ##########################
@@ -243,7 +245,7 @@ def fmessage(text, newline=True):
 ################################################################################
 
 
-def message_box(title, message):
+def message_box(title, message, version):
     title = "%s (K40 Whisperer V%s)" % (title, version)
     tkinter.messagebox.showinfo(title, message)
 

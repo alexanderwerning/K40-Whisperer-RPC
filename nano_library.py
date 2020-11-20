@@ -29,6 +29,7 @@ import struct
 import os
 from shutil import copyfile
 from egv import egv
+import xmlrpc.client
 import traceback
 from windowsinhibitor import WindowsInhibitor
 from time import time
@@ -395,6 +396,15 @@ class K40_CLASS:
 
         return self.USB_Location
 
+
+class K40_CLASS_NETWORK(object):
+    def __init__(self, url):
+        self._xmlrpc_server_proxy = xmlrpclib.ServerProxy(url)
+    def __getattr__(self, name):
+        call_proxy = getattr(self._xmlrpc_server_proxy, name)
+        def _call(*args, **kwargs):
+            return call_proxy(args, kwargs)
+        return _call
 
 if __name__ == "__main__":
     k40 = K40_CLASS()

@@ -17,7 +17,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-import xmlrpc.client
 from PIL import Image, ImageFilter, ImageOps
 from time import time
 import webbrowser
@@ -30,7 +29,7 @@ import binascii
 from utils import *
 from dialog import *
 from svg_reader import SVG_PXPI_EXCEPTION, SVG_READER, SVG_TEXT_EXCEPTION
-from nano_library import K40_CLASS
+from nano_library import K40_CLASS, K40_CLASS_NETWORK
 from interpolate import interpolate
 from g_code_library import G_Code_Rip
 from egv import egv
@@ -1683,7 +1682,7 @@ class Application(Frame):
             msg1 = "Beware:"
             msg2 = "Most people should leave the 'Inkscape Executable' entry field blank. "
             msg3 = "K40 Whisperer will find Inkscape in one of the the standard locations after you install Inkscape."
-            message_box(msg1, msg2+msg3)
+            message_box(msg1, msg2+msg3, version)
 
     def Entry_units_var_Callback(self):
         if (self.units.get() == 'in') and (self.funits.get() == 'mm/s'):
@@ -1704,23 +1703,23 @@ class Application(Frame):
             self.units_scale = 25.4
         else:
             return
-        self.LaserXsize.set(self.Scale_Text_Value(
+        self.LaserXsize.set(Scale_Text_Value(
             '%.2f', self.LaserXsize.get(), factor))
-        self.LaserYsize.set(self.Scale_Text_Value(
+        self.LaserYsize.set(Scale_Text_Value(
             '%.2f', self.LaserYsize.get(), factor))
-        self.jog_step.set(self.Scale_Text_Value(
+        self.jog_step.set(Scale_Text_Value(
             '%.3f', self.jog_step.get(), factor))
-        self.gotoX.set(self.Scale_Text_Value('%.3f', self.gotoX.get(), factor))
-        self.gotoY.set(self.Scale_Text_Value('%.3f', self.gotoY.get(), factor))
-        self.Reng_feed.set(self.Scale_Text_Value(
+        self.gotoX.set(Scale_Text_Value('%.3f', self.gotoX.get(), factor))
+        self.gotoY.set(Scale_Text_Value('%.3f', self.gotoY.get(), factor))
+        self.Reng_feed.set(Scale_Text_Value(
             '%.1f', self.Reng_feed.get(), vfactor))
-        self.Veng_feed.set(self.Scale_Text_Value(
+        self.Veng_feed.set(Scale_Text_Value(
             '%.1f', self.Veng_feed.get(), vfactor))
-        self.Vcut_feed.set(self.Scale_Text_Value(
+        self.Vcut_feed.set(Scale_Text_Value(
             '%.1f', self.Vcut_feed.get(), vfactor))
-        self.trace_speed.set(self.Scale_Text_Value(
+        self.trace_speed.set(Scale_Text_Value(
             '%.1f', self.trace_speed.get(), vfactor))
-        self.rapid_feed.set(self.Scale_Text_Value(
+        self.rapid_feed.set(Scale_Text_Value(
             '%.1f', self.rapid_feed.get(), vfactor))
 
     def menu_File_Open_Settings_File(self, event=None):
@@ -1943,7 +1942,7 @@ class Application(Frame):
             msg2 = "Memory Error:  Out of Memory."
             self.statusMessage.set(msg2)
             self.statusbar.configure(bg='red')
-            message_box(msg1, msg2)
+            message_box(msg1, msg2, version)
             debug_message(traceback.format_exc())
 
         except Exception as e:
@@ -1953,7 +1952,7 @@ class Application(Frame):
                 formatted_lines = traceback.format_exc().splitlines()
             self.statusMessage.set((msg1+msg2).split("\n")[0])
             self.statusbar.configure(bg='red')
-            message_box(msg1, msg2)
+            message_box(msg1, msg2, version)
             debug_message(traceback.format_exc())
 
         # rapid move back to starting position
@@ -2012,7 +2011,7 @@ class Application(Frame):
             msg2 = "%s" % (e)
             self.statusMessage.set((msg1+msg2).split("\n")[0])
             self.statusbar.configure(bg='red')
-            message_box(msg1, msg2)
+            message_box(msg1, msg2, version)
             debug_message(traceback.format_exc())
             return
         except:
@@ -2057,7 +2056,7 @@ class Application(Frame):
             line2 = "There is vector cut or vector engrave data located outside of the SVG page bounds.\n\n"
             line3 = "K40 Whisperer will attempt to use all of the vector data.  "
             line4 = "Please verify that the vector data is not outside of your lasers working area before engraving."
-            message_box("Warning", line1+line2+line3+line4)
+            message_box("Warning", line1+line2+line3+line4, version)
 
     #####################################################################
 
@@ -2205,7 +2204,7 @@ class Application(Frame):
             msg2 = "Memory Error:  Out of Memory."
             self.statusMessage.set(msg2)
             self.statusbar.configure(bg='red')
-            message_box(msg1, msg2)
+            message_box(msg1, msg2, version)
             debug_message(traceback.format_exc())
 
         except Exception as e:
@@ -2213,7 +2212,7 @@ class Application(Frame):
             msg2 = "%s" % (e)
             self.statusMessage.set((msg1+msg2).split("\n")[0])
             self.statusbar.configure(bg='red')
-            message_box(msg1, msg2)
+            message_box(msg1, msg2, version)
             debug_message(traceback.format_exc())
     #######################################################################
 
@@ -2267,7 +2266,7 @@ class Application(Frame):
                 filename, XYarc2line=True, arc_angle=2, units="in", Accuracy="")
             Error_Text = ""
             if MSG != []:
-                self.gcode_error_message(MSG)
+                gcode_error_message(MSG)
 
         # except StandardError as e:
         except Exception as e:
@@ -2276,7 +2275,7 @@ class Application(Frame):
             msg3 = "%s" % (e)
             self.statusMessage.set((msg1+msg3).split("\n")[0])
             self.statusbar.configure(bg='red')
-            message_box(msg1, "%s\n%s" % (msg2, msg3))
+            message_box(msg1, "%s\n%s" % (msg2, msg3), version)
             debug_message(traceback.format_exc())
 
         ecoords = g_rip.generate_laser_paths(g_rip.g_code_data)
@@ -2330,7 +2329,7 @@ class Application(Frame):
             msg2 = "%s" % (e)
             self.statusMessage.set((msg1+msg2).split("\n")[0])
             self.statusbar.configure(bg='red')
-            message_box(msg1, msg2)
+            message_box(msg1, msg2, version)
             debug_message(traceback.format_exc())
         except:
             fmessage("Unable To open Drawing Exchange File (DXF) file.")
@@ -2357,7 +2356,7 @@ class Application(Frame):
                         msg_line = "%s (%d places)\n" % (msg_split[i-1], mcnt)
                         msg_out = msg_out + msg_line
                     mcnt = 1
-            message_box("DXF Import:", msg_out)
+            message_box("DXF Import:", msg_out, version)
 
         ##########################
         ###   Create ECOORDS   ###
@@ -2840,7 +2839,7 @@ class Application(Frame):
             msg2 = "Memory Error:  Out of Memory."
             self.statusMessage.set(msg2)
             self.statusbar.configure(bg='red')
-            message_box(msg1, msg2)
+            message_box(msg1, msg2, version)
             debug_message(traceback.format_exc())
 
         except Exception as e:
@@ -2848,7 +2847,7 @@ class Application(Frame):
             msg2 = "%s" % (e)
             self.statusMessage.set((msg1+msg2).split("\n")[0])
             self.statusbar.configure(bg='red')
-            message_box(msg1, msg2)
+            message_box(msg1, msg2, version)
             debug_message(traceback.format_exc())
         self.Finish_Job()
 
@@ -2867,7 +2866,7 @@ class Application(Frame):
             msg2 = "%s" % (e)
             self.statusMessage.set((msg1+msg2).split("\n")[0])
             self.statusbar.configure(bg='red')
-            message_box(msg1, msg2)
+            message_box(msg1, msg2, version)
             debug_message(traceback.format_exc())
         self.Finish_Job()
 
@@ -2896,7 +2895,7 @@ class Application(Frame):
             msg2 = "%s" % (e)
             self.statusMessage.set((msg1+msg2).split("\n")[0])
             self.statusbar.configure(bg='red')
-            message_box(msg1, msg2)
+            message_box(msg1, msg2, version)
             debug_message(traceback.format_exc())
         self.Finish_Job()
 
@@ -2944,7 +2943,7 @@ class Application(Frame):
             if stderr != '':
                 msg2 = msg2+'\n\nBatch File Errors:\n'+stderr
             self.run_time = 0
-            message_box(msg1, msg2)
+            message_box(msg1, msg2, version)
 
     def make_trace_path(self):
         my_hull = hull2D()
@@ -3004,7 +3003,7 @@ class Application(Frame):
     ################################################################################
 
     def optimize_paths(self, ecoords, inside_check=True):
-        order_out = self.Sort_Paths(ecoords)
+        order_out = Sort_Paths(ecoords)
         lastx = -999
         lasty = -999
         Acc = 0.004
@@ -3054,7 +3053,7 @@ class Application(Frame):
                         if jloop != iloop:
                             inside = 0
                             inside = inside + \
-                                self.point_inside_polygon(
+                                point_inside_polygon(
                                     cuts[jloop][0][0], cuts[jloop][0][1], ipoly)
                             if inside > 0:
                                 self.LoopTree[iloop].append(jloop)
@@ -3397,7 +3396,7 @@ class Application(Frame):
             msg2 = "Memory Error:  Out of Memory."
             self.statusMessage.set(msg2)
             self.statusbar.configure(bg='red')
-            message_box(msg1, msg2)
+            message_box(msg1, msg2, version)
             debug_message(traceback.format_exc())
 
         except Exception as e:
@@ -3407,7 +3406,7 @@ class Application(Frame):
                 formatted_lines = traceback.format_exc().splitlines()
             self.statusMessage.set((msg1+msg2).split("\n")[0])
             self.statusbar.configure(bg='red')
-            message_box(msg1, msg2)
+            message_box(msg1, msg2, version)
             debug_message(traceback.format_exc())
 
     def send_egv_data(self, data, num_passes=1, output_filename=None):
@@ -3524,7 +3523,7 @@ class Application(Frame):
             if server_address_file.exists():
                 server_address = server_address_file.read_text()
                 try:
-                    self.k40 = xmlrpc.client.ServerProxy(server_address, allow_none=True)
+                    self.k40 = K40_CLASS_NETWORK(server_address, allow_none=True)
                 except:
                     pass
             else:
@@ -3681,7 +3680,7 @@ class Application(Frame):
             python_version = ""
         about = about + "Python "+python_version + \
             " (%d bit)" % (struct.calcsize("P") * 8)
-        message_box("About k40 Whisperer", about)
+        message_box("About k40 Whisperer", about, version)
 
     def menu_Help_Web(self):
         webbrowser.open_new(
@@ -5372,7 +5371,7 @@ except:
     pass
 
 if LOAD_MSG != "":
-    message_box("K40 Whisperer", LOAD_MSG)
+    message_box("K40 Whisperer", LOAD_MSG, version)
 debug_message("Debuging is turned on.")
 
 
