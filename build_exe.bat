@@ -8,14 +8,14 @@ rmdir /S /Q dist
 rmdir /S /Q dist32
 rmdir /S /Q dist64
 
-python2 py2exe_setup.py py2exe
+python py2exe_setup.py py2exe
 rmdir /S /Q build
 move dist dist32
 robocopy icons dist32/icons /E
 rem pause
 
 del *.pyc
-python2 py2exe_setup.py py2exe
+python py2exe_setup.py py2exe
 rmdir /S /Q build
 move dist dist64
 robocopy icons dist64/icons /E
