@@ -167,7 +167,7 @@ class K40_CLASS:
         print("pause_un_pause")
         self.send_data([ord('P'), ord('N')], None, None, 1, True, False)
 
-    def none_function(self, dummy=None, bgcolor=None):
+    def none_function(self, dummy, bgcolor):
         # Don't delete this function (used in send_data)
         return False
 
@@ -213,13 +213,13 @@ class K40_CLASS:
                         if (stamp != timestamp):
                             timestamp = stamp  # interlock
                             update_gui("Sending Data to Laser = %.1f%%" %
-                                       (100.0*float(i)/float(len_data)))
+                                       (100.0*float(i)/float(len_data)), None)
                     else:
                         packets.append(packet)
                         if (stamp != timestamp):
                             timestamp = stamp  # interlock
                             update_gui("Calculating CRC data and Generate Packets: %.1f%%" % (
-                                100.0*float(i)/float(len_data)))
+                                100.0*float(i)/float(len_data)), None)
                     packet = blank[:]
                     cnt = 2
 
@@ -237,15 +237,15 @@ class K40_CLASS:
             self.send_packet_w_error_checking(packet, update_gui, stop_calc)
         else:
             packets.append(packet)
-            update_gui("CRC data and Packets are Ready")
+            update_gui("CRC data and Packets are Ready", None)
         packet_cnt = 0
         print("send packets to server")
         for line in packets:
-            update_gui()
+            update_gui(None, None)
             self.send_packet_w_error_checking(line, update_gui, stop_calc)
             packet_cnt = packet_cnt+1.0
             update_gui("Sending Data to Laser = %.1f%%" %
-                       (100.0*packet_cnt/len(packets)))
+                       (100.0*packet_cnt/len(packets)), None)
         ##############################################################
         if wait_for_laser:
             self.wait_for_laser_to_finish(update_gui, stop_calc)
@@ -328,12 +328,12 @@ class K40_CLASS:
                 break
             elif response == None:
                 msg = "Laser stopped responding after operation was complete."
-                update_gui(msg)
+                update_gui(msg, None)
                 #raise Exception(msg)
                 FINISHED = True
             else:  # assume: response == self.OK:
                 msg = "Waiting for the laser to finish."
-                update_gui(msg)
+                update_gui(msg, None)
             if stop_calc[0]:
                 self.stop_sending_data()
 
