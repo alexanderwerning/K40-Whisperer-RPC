@@ -3417,7 +3417,7 @@ class Application(Frame):
             self.k40.set_timeout(int(float(self.t_timeout.get())))
             self.k40.set_n_timeouts(int(float(self.n_timeouts.get())))
             time_start = time()
-            self.k40.send_data(data, self.update_gui, self.stop,
+            self.k40.send_data(data, None, self.stop,
                                num_passes, pre_process_CRC, True)
             self.run_time = time()-time_start
             if DEBUG:
