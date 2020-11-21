@@ -1946,6 +1946,7 @@ class Application(Frame):
             debug_message(traceback.format_exc())
 
         except Exception as e:
+            print(e)
             msg1 = "Sending Data Stopped: "
             msg2 = "%s" % (e)
             if msg2 == "":
@@ -3400,6 +3401,7 @@ class Application(Frame):
             debug_message(traceback.format_exc())
 
         except Exception as e:
+            print(e)
             msg1 = "Sending Data Stopped: "
             msg2 = "%s" % (e)
             if msg2 == "":
@@ -3416,7 +3418,7 @@ class Application(Frame):
             self.k40.set_n_timeouts(int(float(self.n_timeouts.get())))
             time_start = time()
             self.k40.send_data(data, self.update_gui, self.stop,
-                               num_passes, pre_process_CRC, wait_for_laser=True)
+                               num_passes, pre_process_CRC, True)
             self.run_time = time()-time_start
             if DEBUG:
                 print(("Elapsed Time: %.6f" % (time()-time_start)))
@@ -3523,14 +3525,17 @@ class Application(Frame):
             if server_address_file.exists():
                 server_address = server_address_file.read_text()
                 try:
-                    self.k40 = K40_CLASS_NETWORK(server_address, allow_none=True)
-                except:
-                    pass
+                    self.k40 = K40_CLASS_NETWORK(server_address)
+                except Exception as e:
+                    self.statusMessage.set(f"Network Error: {e}")
+                    self.statusbar.configure(bg='red')
             else:
                 self.k40 = None
+                self.statusMessage.set("Error: No server adress file server.dat exists.")
+                self.statusbar.configure(bg='red')
 
         try:
-            self.k40.initialize_device()
+            self.k40.initialize_device(None, False)
             self.k40.say_hello()
             if self.init_home.get():
                 self.Home()

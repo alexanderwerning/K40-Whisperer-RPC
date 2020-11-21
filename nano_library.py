@@ -162,7 +162,7 @@ class K40_CLASS:
         # Don't delete this function (used in send_data)
         return False
 
-    def send_data(self, data, update_gui=None, stop_calc=None, passes=1, preprocess_crc=True, wait_for_laser=False):
+    def send_data(self, data, update_gui, stop_calc, passes, preprocess_crc, wait_for_laser):
         if stop_calc == None:
             stop_calc = []
             stop_calc.append(0)
@@ -329,7 +329,7 @@ class K40_CLASS:
             egv_inst.make_move_data(dxmils, dymils)
             self.send_data(data, wait_for_laser=False)
 
-    def initialize_device(self, USB_Location=None, verbose=False):
+    def initialize_device(self, USB_Location, verbose):
         try:
             self.release_usb()
         except:
@@ -403,14 +403,9 @@ class K40_CLASS:
         return self.USB_Location
 
 
-class K40_CLASS_NETWORK(object):
-    def __init__(self, url):
-        self._xmlrpc_server_proxy = xmlrpclib.ServerProxy(url)
-    def __getattr__(self, name):
-        call_proxy = getattr(self._xmlrpc_server_proxy, name)
-        def _call(*args, **kwargs):
-            return call_proxy(args, kwargs)
-        return _call
+def K40_CLASS_NETWORK(address):
+    return xmlrpc.client.ServerProxy(address, allow_none=True)
+
 
 if __name__ == "__main__":
     k40 = K40_CLASS()
