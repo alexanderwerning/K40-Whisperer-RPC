@@ -55,7 +55,8 @@ def OneWireCRC(line):
 
 
 class K40_CLASS:
-    def __init__(self):
+    def __init__(self, inhibit=True):
+        self.inhibit = inhibit
         self.dev = None
         self.n_timeouts = 10
         self.timeout = 200   # Time in milliseconds
@@ -86,6 +87,7 @@ class K40_CLASS:
         self.timeout = value
 
     def say_hello(self):
+        print("say_hello")
         cnt = 0
         status_timeouts = self.n_timeouts
         while cnt < status_timeouts:
@@ -163,14 +165,16 @@ class K40_CLASS:
         return False
 
     def send_data(self, data, update_gui, stop_calc, passes, preprocess_crc, wait_for_laser):
+        print("send_data")
         if stop_calc == None:
             stop_calc = []
             stop_calc.append(0)
         if update_gui == None:
             update_gui = self.none_function
 
-        NoSleep = WindowsInhibitor()
-        NoSleep.inhibit()
+        if self.inhibit:
+            NoSleep = WindowsInhibitor()
+            NoSleep.inhibit()
 
         blank = [166, 0, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70,
                  70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 166, 0]
@@ -232,9 +236,12 @@ class K40_CLASS:
         ##############################################################
         if wait_for_laser:
             self.wait_for_laser_to_finish(update_gui, stop_calc)
-        NoSleep.uninhibit()
+
+        if self.inhibit:
+            NoSleep.uninhibit()
 
     def send_packet_w_error_checking(self, line, update_gui=None, stop_calc=None):
+        print("send_packet_w_error_checking")
         timeout_cnt = 1
         crc_cnt = 1
         while True:
@@ -298,6 +305,7 @@ class K40_CLASS:
                 break  # break to move on to next packet
 
     def wait_for_laser_to_finish(self, update_gui=None, stop_calc=None):
+        print("wait_for_laser_to_finish")
         FINISHED = False
         while not FINISHED:
             response = self.say_hello()
@@ -330,6 +338,7 @@ class K40_CLASS:
             self.send_data(data, None, None, 1, True, False)
 
     def initialize_device(self, USB_Location, verbose):
+        print("initialize_device")
         try:
             self.release_usb()
         except:
