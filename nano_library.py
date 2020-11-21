@@ -81,9 +81,11 @@ class K40_CLASS:
         self.USB_Location = None
 
     def set_n_timeouts(self, value):
+        print("set_n_timeouts")
         self.n_timeouts = value
 
     def set_timeout(self, value):
+        print("set_timeout")
         self.timeout = value
 
     def say_hello(self):
@@ -141,6 +143,7 @@ class K40_CLASS:
             return None
 
     def unlock_rail(self):
+        print("unlock_rail")
         self.send_packet(self.unlock)
 
     def e_stop(self):
@@ -331,10 +334,12 @@ class K40_CLASS:
                 self.stop_sending_data()
 
     def stop_sending_data(self):
+        print("stop_sending_data")
         self.e_stop()
         raise Exception("Action Stopped by User.")
 
     def send_packet(self, line):
+        print("send_packet")
         self.dev.write(self.write_addr, line, self.timeout)
 
     def rapid_move(self, dxmils, dymils):
