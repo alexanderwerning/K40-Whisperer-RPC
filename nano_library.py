@@ -147,17 +147,21 @@ class K40_CLASS:
         self.send_packet(self.estop)
 
     def home_position(self):
+        print("home_position")
         self.send_packet(self.home)
 
     def reset_usb(self):
+        print("reset_usb")
         self.dev.reset()
 
     def release_usb(self):
+        print("release_usb")
         usb.util.dispose_resources(self.dev)
         self.dev = None
         self.USB_Location = None
 
     def pause_un_pause(self):
+        print("pause_un_pause")
         self.send_data([ord('P'), ord('N')], None, None, 1, True, False)
 
     def none_function(self, dummy=None, bgcolor=None):
@@ -182,7 +186,9 @@ class K40_CLASS:
         packet = blank[:]
         cnt = 2
         len_data = len(data)
+        print("ready to send")
         for j in range(passes):
+            print(f"pass {j} of {passes}")
             if j == 0:
                 istart = 0
             else:
@@ -194,6 +200,7 @@ class K40_CLASS:
                     data[-4] = ord("@")
             timestamp = 0
             for i in range(istart, len_data):
+                print("send packet")
                 if cnt > 31:
                     packet[-1] = OneWireCRC(packet[1:len(packet)-2])
                     stamp = int(3*time())  # update every 1/3 of a second
@@ -331,6 +338,7 @@ class K40_CLASS:
         self.dev.write(self.write_addr, line, self.timeout)
 
     def rapid_move(self, dxmils, dymils):
+        print("rapid_move")
         if (dxmils != 0 or dymils != 0):
             data = []
             egv_inst = egv(target=lambda s: data.append(s))
