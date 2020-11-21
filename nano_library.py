@@ -266,7 +266,7 @@ class K40_CLASS:
             if response == self.BUFFER_FULL:
                 while response == self.BUFFER_FULL:
                     response = self.say_hello()
-                    update_gui()
+                    update_gui(None, None)
                     if stop_calc[0]:
                         self.stop_sending_data()
             try:
