@@ -203,7 +203,7 @@ class K40_CLASS:
                     data[-4] = ord("@")
             timestamp = 0
             for i in range(istart, len_data):
-                print("send packet")
+                print("create packet")
                 if cnt > 31:
                     packet[-1] = OneWireCRC(packet[1:len(packet)-2])
                     stamp = int(3*time())  # update every 1/3 of a second
@@ -224,19 +224,22 @@ class K40_CLASS:
                     cnt = 2
 
                     if stop_calc[0] == True:
-                        NoSleep.uninhibit()
+                        if self.inhibit:
+                            NoSleep.uninhibit()
                         self.stop_sending_data()
                         #raise Exception("Action Stopped by User.")
                 packet[cnt] = data[i]
                 cnt = cnt+1
+                print("packet created")
         packet[-1] = OneWireCRC(packet[1:len(packet)-2])
+        print("all packets created")
         if not preprocess_crc:
             self.send_packet_w_error_checking(packet, update_gui, stop_calc)
         else:
             packets.append(packet)
             update_gui("CRC data and Packets are Ready")
         packet_cnt = 0
-
+        print("send packets to server")
         for line in packets:
             update_gui()
             self.send_packet_w_error_checking(line, update_gui, stop_calc)
@@ -249,6 +252,7 @@ class K40_CLASS:
 
         if self.inhibit:
             NoSleep.uninhibit()
+        print("sending finished")
 
     def send_packet_w_error_checking(self, line, update_gui=None, stop_calc=None):
         print("send_packet_w_error_checking")
