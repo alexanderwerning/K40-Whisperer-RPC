@@ -156,7 +156,7 @@ class K40_CLASS:
         self.USB_Location = None
 
     def pause_un_pause(self):
-        self.send_data([ord('P'), ord('N')])
+        self.send_data([ord('P'), ord('N')], None, None, 1, True, False)
 
     def none_function(self, dummy=None, bgcolor=None):
         # Don't delete this function (used in send_data)
@@ -267,7 +267,7 @@ class K40_CLASS:
                 if timeout_cnt > 20:
                     # try reconnect to laser
                     try:
-                        self.initialize_device(self.USB_Location)
+                        self.initialize_device(self.USB_Location, False)
                     except:
                         pass
 
@@ -327,7 +327,7 @@ class K40_CLASS:
             data = []
             egv_inst = egv(target=lambda s: data.append(s))
             egv_inst.make_move_data(dxmils, dymils)
-            self.send_data(data, wait_for_laser=False)
+            self.send_data(data, None, None, 1, True, False)
 
     def initialize_device(self, USB_Location, verbose):
         try:
