@@ -207,7 +207,7 @@ class SVG_READER(inkex.Effect):
     def colmod(self, r, g, b, path_id):
         changed = False
         k40_action = 'raster'
-        delta = 10
+        delta = 50
         # Check if the color is Red (or close to it)
         if (r >= 255-delta) and (g <= delta) and (b <= delta):
             k40_action = "cut"
@@ -808,10 +808,8 @@ class SVG_READER(inkex.Effect):
     def make_paths(self, txt2paths=False):
         self.txt2paths = txt2paths
         msg = ""
-
         if (self.txt2paths):
             self.convert_text2paths()
-
         #################
         ## GET VIEWBOX ##
         #################

@@ -1,3 +1,4 @@
+from tkinter import *
 ################################################################################
 #                         Choose Units Dialog                                  #
 ################################################################################
@@ -116,7 +117,7 @@ class pxpiDialog(tkSimpleDialog.Dialog):
         self.svg_width.set("%f" % (width*self.scale))
         self.svg_height.set("%f" % (height*self.scale))
         ###################################
-        tkinter.simpledialog.Dialog.__init__(self, parent)
+        tkSimpleDialog.Dialog.__init__(self, parent)
 
     def body(self, master):
         self.resizable(0, 0)

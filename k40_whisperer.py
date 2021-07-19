@@ -1778,11 +1778,11 @@ class Application(Frame):
         else:
             default_types = design_types
 
-        fileselect = askopenfilename(filetypes=[default_types,
+        fileselect = askopenfilename(filetypes=[("SVG Files ", "*.svg"),
+                                                default_types,
                                                 ("G-Code Files ", ("*.ngc",
                                                                    "*.gcode", "*.g", "*.tap")),
                                                 ("DXF Files ", "*.dxf"),
-                                                ("SVG Files ", "*.svg"),
                                                 ("All Files ", "*"),
                                                 ("Design Files ", ("*.svg", "*.dxf"))],
                                      initialdir=init_dir)
@@ -2008,6 +2008,7 @@ class Application(Frame):
                 svg_reader.make_paths(txt2paths=True)
 
         except Exception as e:
+            print(e)
             msg1 = "SVG file load failed: "
             msg2 = "%s" % (e)
             self.statusMessage.set((msg1+msg2).split("\n")[0])
@@ -2130,7 +2131,7 @@ class Application(Frame):
 
                 my_hull = hull2D()
                 bignumber = 9999999
-                Raster_step = self.get_raster_step_1000in()
+                Raster_step = get_raster_step_1000in(self.rast_step.get())
                 timestamp = 0
                 for i in range(0, him, Raster_step):
                     stamp = int(3*time())  # update every 1/3 of a second
@@ -3292,7 +3293,7 @@ class Application(Frame):
 
             if (operation_type.find("Raster_Eng") > -1) and (self.RengData.ecoords != []):
                 Feed_Rate = float(self.Reng_feed.get())*feed_factor
-                Raster_step = self.get_raster_step_1000in()
+                Raster_step = get_raster_step_1000in(self.rast_step.get())
                 if not self.engraveUP.get():
                     Raster_step = -Raster_step
 
