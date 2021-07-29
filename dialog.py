@@ -41,11 +41,6 @@ class UnitsDialog(tkSimpleDialog.Dialog):
         return
 
 
-class toplevel_dummy():
-    def winfo_exists(self):
-        return False
-
-
 class pxpiDialog(tkSimpleDialog.Dialog):
 
     def __init__(self,

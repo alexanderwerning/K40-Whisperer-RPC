@@ -163,12 +163,12 @@ class K40_CLASS:
         # Don't delete this function (used in send_data)
         return False
 
-    def send_data(self, data, update_gui, stop_calc, passes, preprocess_crc, wait_for_laser):
+    def send_data(self, data, reporter, stop_calc, passes, preprocess_crc, wait_for_laser):
         if stop_calc == None:
             stop_calc = []
             stop_calc.append(0)
-        if update_gui == None:
-            update_gui = self.none_function
+        if reporter == None:
+            reporter = self.none_function
 
         if self.inhibit:
             NoSleep = WindowsInhibitor()
@@ -197,17 +197,17 @@ class K40_CLASS:
                     stamp = int(3*time())  # update every 1/3 of a second
                     if not preprocess_crc:
                         self.send_packet_w_error_checking(
-                            packet, update_gui, stop_calc)
+                            packet, reporter, stop_calc)
                         if (stamp != timestamp):
                             timestamp = stamp  # interlock
-                            update_gui("Sending Data to Laser = %.1f%%" %
-                                       (100.0*float(i)/float(len_data)), None)
+                            reporter.status("Sending Data to Laser = %.1f%%" %
+                                       (100.0*float(i)/float(len_data)))
                     else:
                         packets.append(packet)
                         if (stamp != timestamp):
                             timestamp = stamp  # interlock
-                            update_gui("Calculating CRC data and Generate Packets: %.1f%%" % (
-                                100.0*float(i)/float(len_data)), None)
+                            reporter.status("Calculating CRC data and Generate Packets: %.1f%%" % (
+                                100.0*float(i)/float(len_data)))
                     packet = blank[:]
                     cnt = 2
 
@@ -220,25 +220,25 @@ class K40_CLASS:
                 cnt = cnt+1
         packet[-1] = OneWireCRC(packet[1:len(packet)-2])
         if not preprocess_crc:
-            self.send_packet_w_error_checking(packet, update_gui, stop_calc)
+            self.send_packet_w_error_checking(packet, reporter, stop_calc)
         else:
             packets.append(packet)
-            update_gui("CRC data and Packets are Ready", None)
+            reporter.status("CRC data and Packets are Ready")
         packet_cnt = 0
         for line in packets:
-            update_gui(None, None)
-            self.send_packet_w_error_checking(line, update_gui, stop_calc)
+            reporter.clear()
+            self.send_packet_w_error_checking(line, reporter, stop_calc)
             packet_cnt = packet_cnt+1.0
-            update_gui("Sending Data to Laser = %.1f%%" %
-                       (100.0*packet_cnt/len(packets)), None)
+            reporter.status("Sending Data to Laser = %.1f%%" %
+                       (100.0*packet_cnt/len(packets)))
         ##############################################################
         if wait_for_laser:
-            self.wait_for_laser_to_finish(update_gui, stop_calc)
+            self.wait_for_laser_to_finish(reporter, stop_calc)
 
         if self.inhibit:
             NoSleep.uninhibit()
 
-    def send_packet_w_error_checking(self, line, update_gui=None, stop_calc=None):
+    def send_packet_w_error_checking(self, line, reporter=None, stop_calc=None):
         timeout_cnt = 1
         crc_cnt = 1
         while True:
@@ -249,7 +249,7 @@ class K40_CLASS:
             if response == self.BUFFER_FULL:
                 while response == self.BUFFER_FULL:
                     response = self.say_hello()
-                    update_gui(None, None)
+                    reporter.clear()
                     if stop_calc[0]:
                         self.stop_sending_data()
             try:
@@ -258,15 +258,16 @@ class K40_CLASS:
                 timeout_cnt = timeout_cnt+1
                 if timeout_cnt < self.n_timeouts:
                     msg = "USB Timeout #%d" % (timeout_cnt)
-                    update_gui(msg, bgcolor='yellow')
+                    reporter.warning(msg)
                 else:
                     msg = "The laser cutter is not responding (%d attempts). Press stop to stop trying!" % (
                         timeout_cnt)
-                    gui_active = update_gui(msg, bgcolor='red')
-                    if not gui_active:
-                        msg = "The laser cutter is not responding after %d attempts." % (
-                            timeout_cnt)
-                        raise Exception(msg)
+                    reporter.error(msg)
+                    # gui_active = update_gui(msg, bgcolor='red')
+                    # if not gui_active:
+                    #     msg = "The laser cutter is not responding after %d attempts." % (
+                    #         timeout_cnt)
+                    #     raise Exception(msg)
 
                 if timeout_cnt > 20:
                     # try reconnect to laser
@@ -283,25 +284,26 @@ class K40_CLASS:
                 crc_cnt = crc_cnt+1
                 if crc_cnt < self.n_timeouts:
                     msg = "Data transmission (CRC) error #%d" % (crc_cnt)
-                    update_gui(msg, bgcolor='yellow')
+                    reporter.warning(msg)
                 else:
                     msg = "There are many data transmission errors (%d). Press stop to stop trying!" % (
                         crc_cnt)
-                    gui_active = update_gui(msg, bgcolor='red')
-                    if not gui_active:
-                        msg = "There are many data transmission errors (%d)." % (
-                            crc_cnt)
-                        raise Exception(msg)
+                    reporter.error(msg)
+                    # gui_active = update_gui(msg, bgcolor='red')
+                    # if not gui_active:
+                    #     msg = "There are many data transmission errors (%d)." % (
+                    #         crc_cnt)
+                    #     raise Exception(msg)
                 continue
             elif response == None:
-                # The controller board is not reporting status. but we will
+                # The controller board is not reportering status. but we will
                 # assume things are going OK. until we cannot transmit to the controller.
                 break  # break to move on to next packet
 
             else:  # assume: response == self.OK:
                 break  # break to move on to next packet
 
-    def wait_for_laser_to_finish(self, update_gui=None, stop_calc=None):
+    def wait_for_laser_to_finish(self, reporter=None, stop_calc=None):
         FINISHED = False
         while not FINISHED:
             response = self.say_hello()
@@ -310,12 +312,12 @@ class K40_CLASS:
                 break
             elif response == None:
                 msg = "Laser stopped responding after operation was complete."
-                update_gui(msg, None)
+                reporter.status(msg, None)
                 #raise Exception(msg)
                 FINISHED = True
             else:  # assume: response == self.OK:
                 msg = "Waiting for the laser to finish."
-                update_gui(msg, None)
+                reporter.status(msg, None)
             if stop_calc[0]:
                 self.stop_sending_data()
 

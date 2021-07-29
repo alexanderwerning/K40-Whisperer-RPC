@@ -1,0 +1,7 @@
+html { height: 100%; }
+body { height: 100%; }
+.information { color: #2fcc2e; }
+.warning { color: #ccc92e; }
+.error { color: #cc2f2e; }
+.fieldWarning { background-color: #ccc92e; }
+.fieldError { background-color: #cc2f2e; }

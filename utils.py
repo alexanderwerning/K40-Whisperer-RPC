@@ -1,6 +1,6 @@
 """This module collects all functions pulled out from k40_whisperer.py"""
 
-import tkinter
+from time import time
 
 DEBUG = False
 QUIET = False
@@ -66,60 +66,6 @@ def generate_bezier(M1, M2, w, n=100):
         y.append(Ct*(2*(1-t)*t*w*y1+pow(t, 2)*255))
     return x, y
 
-
-def LASER_Size(units, laserXsize, laserYsize):
-    MINX = 0.0
-    MAXY = 0.0
-    if units == "in":
-        MAXX = float(laserXsize)
-        MINY = -float(laserYsize)
-    else:
-        MAXX = float(laserXsize)/25.4
-        MINY = -float(laserYsize)/25.4
-
-    return (MAXX-MINX, MAXY-MINY)
-
-
-def gcode_error_message(message):
-    error_report = Toplevel(width=525, height=60)
-    error_report.title("G-Code Reading Errors/Warnings")
-    error_report.iconname("G-Code Errors")
-    error_report.grab_set()
-    return_value = StringVar()
-    return_value.set("none")
-
-    try:
-        error_report.iconbitmap(bitmap="@emblem64")
-    except:
-        debug_message(traceback.format_exc())
-        pass
-
-    def Close_Click(event):
-        return_value.set("close")
-        error_report.destroy()
-
-    # Text Box
-    Error_Frame = Frame(error_report)
-    scrollbar = Scrollbar(Error_Frame, orient=VERTICAL)
-    Error_Text = Text(Error_Frame, width="80", height="20",
-                        yscrollcommand=scrollbar.set, bg='white')
-    for line in message:
-        Error_Text.insert(END, line+"\n")
-    scrollbar.config(command=Error_Text.yview)
-    scrollbar.pack(side=RIGHT, fill=Y)
-    # End Text Box
-
-    Button_Frame = Frame(error_report)
-    close_button = Button(Button_Frame, text=" Close ")
-    close_button.bind("<ButtonRelease-1>", Close_Click)
-    close_button.pack(side=RIGHT, fill=X)
-
-    Error_Text.pack(side=LEFT, fill=BOTH, expand=1)
-    Button_Frame.pack(side=BOTTOM)
-    Error_Frame.pack(side=LEFT, fill=BOTH, expand=1)
-
-    root.wait_window(error_report)
-    return return_value.get()
 
 def Sort_Paths(ecoords, i_loop=2):
     ##########################
@@ -218,52 +164,371 @@ def point_inside_polygon(x, y, poly):
 
     return inside
 
-################################################################################
-#             Function for outputting messages to different locations          #
-#            depending on what options are enabled                             #
-################################################################################
-def fmessage(text, newline=True):
-    if (not QUIET):
-        if newline == True:
-            try:
-                sys.stdout.write(text)
-                sys.stdout.write("\n")
-                debug_message(traceback.format_exc())
-            except:
-                debug_message(traceback.format_exc())
-                pass
+def ecoords2lines(ecoords, scale, shift):
+    lines = []
+    loop_old = -1
+    xold = 0
+    yold = 0
+    for line in ecoords:
+        XY = line
+        x1 = XY[0]*scale.x+shift.x
+        y1 = XY[1]*scale.y+shift.y
+        loop = XY[2]
+        # check and see if we need to move to a new discontinuous start point
+        if (loop == loop_old):
+            lines.append([xold, yold, x1, y1])
+        loop_old = loop
+        xold = x1
+        yold = y1
+    return lines
+
+
+from convex_hull import hull2D
+from halftone import convert_halftoning
+from PIL import Image, ImageOps
+
+def make_raster_coords(RengData, laser_scale, design_transform, isRotary, bezier_settings, reporter, rast_step):
+
+    if RengData.rpaths:
+        return
+    try:
+        hcoords = []
+        if (RengData.image != None and RengData.ecoords == []):
+            ecoords = []
+            cutoff = 128
+            image_temp = RengData.image.convert("L")
+
+            if design_transform.negate:
+                image_temp = ImageOps.invert(image_temp)
+
+            if design_transform.mirror:
+                image_temp = ImageOps.mirror(image_temp)
+
+            if design_transform.rotate:
+                image_temp = rotate_raster(image_temp)
+
+            if isRotary:
+                scale_y = laser_scale.y*laser_scale.r
+            else:
+                scale_y = laser_scale.y
+
+            if laser_scale.x != 1.0 or scale_y != 1.0:
+                wim, him = image_temp.size
+                nw = int(wim*laser_scale.x)
+                nh = int(him*scale_y)
+                image_temp = image_temp.resize((nw, nh))
+
+            if design_transform.halftone:
+                ht_size_mils = round(1000.0 / float(design_transform.ht_size), 1)
+                npixels = int(round(ht_size_mils, 1))
+                if npixels == 0:
+                    return
+                wim, him = image_temp.size
+                # Convert to Halftoning and save
+                nw = int(wim / npixels)
+                nh = int(him / npixels)
+                image_temp = image_temp.resize((nw, nh))
+
+                image_temp = convert_halftoning(image_temp, bezier_settings)
+                reporter.status("Creating Halftone Image.")
+                image_temp = image_temp.resize((wim, him))
+            else:
+                image_temp = image_temp.point(
+                    lambda x: 0 if x < 128 else 255, '1')
+                #image_temp = image_temp.convert('1',dither=Image.NONE)
+
+            if DEBUG:
+                image_name = os.path.expanduser("~")+"/IMAGE.png"
+                image_temp.save(image_name, "PNG")
+
+            Reng_np = image_temp.load()
+            wim, him = image_temp.size
+            del image_temp
+            #######################################
+            x = 0
+            y = 0
+            loop = 1
+            LENGTH = 0
+            n_scanlines = 0
+
+            my_hull = hull2D()
+            bignumber = 9999999
+            Raster_step = get_raster_step_1000in(rast_step)
+            timestamp = 0
+            for i in range(0, him, Raster_step):
+                stamp = int(10*time())  # update every second
+                if (stamp != timestamp):
+                    timestamp = stamp  # interlock
+                    reporter.status(f"Creating Scan Lines: {(100.0*i)/him:.1f}%")
+                # if self.stop[0] == True:
+                #     raise Exception("Action stopped by User.")
+                line = []
+                cnt = 1
+                LEFT = bignumber
+                RIGHT = -bignumber
+                for j in range(1, wim):
+                    if (Reng_np[j, i] == Reng_np[j-1, i]):
+                        cnt = cnt+1
+                    else:
+                        if Reng_np[j-1, i]:
+                            laser = "U"
+                        else:
+                            laser = "D"
+                            LEFT = min(j-cnt, LEFT)
+                            RIGHT = max(j, RIGHT)
+
+                        line.append((cnt, laser))
+                        cnt = 1
+                if Reng_np[j-1, i] > cutoff:
+                    laser = "U"
+                else:
+                    laser = "D"
+                    LEFT = min(j-cnt, LEFT)
+                    RIGHT = max(j, RIGHT)
+
+                line.append((cnt, laser))
+                if LEFT != bignumber and RIGHT != -bignumber:
+                    LENGTH = LENGTH + (RIGHT - LEFT)/1000.0
+                    n_scanlines = n_scanlines + 1
+
+                y = (him-i)/1000.0
+                x = 0
+                if LEFT != bignumber:
+                    hcoords.append([LEFT/1000.0, y])
+                if RIGHT != -bignumber:
+                    hcoords.append([RIGHT/1000.0, y])
+                if hcoords != []:
+                    hcoords = my_hull.convexHullecoords(hcoords)
+
+                rng = list(range(0, len(line), 1))
+
+                for i in rng:
+                    seg = line[i]
+                    delta = seg[0]/1000.0
+                    if seg[1] == "D":
+                        loop = loop+1
+                        ecoords.append([x, y, loop])
+                        ecoords.append([x+delta, y, loop])
+                    x = x + delta
+            
+            reporter.status("Creating Scan Lines: 100%")
+
+            RengData.set_ecoords(ecoords, data_sorted=True)
+            RengData.len = LENGTH
+            RengData.n_scanlines = n_scanlines
+        # Set Flag indicating raster paths have been calculated
+        RengData.rpaths = True
+        RengData.hull_coords = hcoords
+
+    except MemoryError as e:
+        reporter.error("Memory Error:  Out of Memory.")
+
+    except Exception as e:
+        msg1 = "Making Raster Coords Stopped: "
+        msg2 = "%s" % (e)
+        reporter.error((msg1+msg2))
+
+
+PYCLIPPER = True
+try:
+    import pyclipper
+except:
+    print("Unable to load Pyclipper library (Offset trace outline will not work without it)")
+    PYCLIPPER = False
+
+
+def offset_eccords(ecoords_in, offset_val):
+    if not PYCLIPPER:
+        return ecoords_in
+
+    loop_num = ecoords_in[0][2]
+    pco = pyclipper.PyclipperOffset()
+    ecoords_out = []
+    pyclip_path = []
+    for i in range(0, len(ecoords_in)):
+        pyclip_path.append([ecoords_in[i][0]*1000, ecoords_in[i][1]*1000])
+
+    pco.AddPath(pyclip_path, pyclipper.JT_ROUND,
+                pyclipper.ET_CLOSEDPOLYGON)
+    try:
+        plot_coords = pco.Execute(offset_val*1000.0)[0]
+        plot_coords.append(plot_coords[0])
+    except:
+        plot_coords = []
+
+    for i in range(0, len(plot_coords)):
+        ecoords_out.append(
+            [plot_coords[i][0]/1000.0, plot_coords[i][1]/1000.0, loop_num])
+    return ecoords_out
+
+def scale_vector_coords(coords, startx, starty, laser_scale, isRotary):
+    Xscale = laser_scale.x
+    Yscale = laser_scale.y
+    if isRotary:
+        Yscale = Yscale*laser_scale.r
+
+    coords_scale = []
+    if Xscale != 1.0 or Yscale != 1.0:
+        for i in range(len(coords)):
+            coords_scale.append(coords[i][:])
+            x = coords_scale[i][0]
+            y = coords_scale[i][1]
+            coords_scale[i][0] = x*Xscale
+            coords_scale[i][1] = y*Yscale
+        scaled_startx = startx*Xscale
+        scaled_starty = starty*Yscale
+    else:
+        coords_scale = coords
+        scaled_startx = startx
+        scaled_starty = starty
+
+    return coords_scale, scaled_startx, scaled_starty
+
+def make_trace_path(design_bounds, laser_scale, RengData,
+    Vcut_coords, Veng_coords, Gcode_coords, trace_gap, design_transform, isRotary):
+    my_hull = hull2D()
+    xmin, xmax, ymin, ymax = design_bounds
+    startx = xmin
+    starty = ymax
+
+    #######################################
+
+    #######################################
+
+    RengHullCoords = []
+    Xscale = 1/laser_scale.x
+    Yscale = 1/laser_scale.y
+    if isRotary:
+        Rscale = 1/laser_scale.r
+        Yscale = Yscale*Rscale
+
+    for point in RengData.hull_coords:
+        RengHullCoords.append(
+            [point[0]*Xscale+xmin, point[1]*Yscale, point[2]])
+
+    all_coords = []
+    all_coords.extend(Vcut_coords)
+    all_coords.extend(Veng_coords)
+    all_coords.extend(Gcode_coords)
+    all_coords.extend(RengHullCoords)
+
+    trace_coords = []
+    if all_coords != []:
+        trace_coords = my_hull.convexHullecoords(all_coords)
+        gap = trace_gap
+        trace_coords = offset_eccords(trace_coords, trace_gap)
+
+    trace_coords, startx, starty = scale_vector_coords(
+        trace_coords, startx, starty, laser_scale, isRotary)
+    return trace_coords
+
+def optimize_paths(ecoords, inside_check=True):
+    order_out = Sort_Paths(ecoords)
+    lastx = -999
+    lasty = -999
+    Acc = 0.004
+    cuts = []
+
+    for line in order_out:
+        temp = line
+        if temp[0] > temp[1]:
+            step = -1
         else:
-            try:
-                sys.stdout.write(text)
-                debug_message(traceback.format_exc())
-            except:
-                debug_message(traceback.format_exc())
-                pass
+            step = 1
 
-################################################################################
-#                               Message Box                                    #
-################################################################################
+        loop_old = -1
 
+        for i in range(temp[0], temp[1]+step, step):
+            x1 = ecoords[i][0]
+            y1 = ecoords[i][1]
+            loop = ecoords[i][2]
+            # check and see if we need to move to a new discontinuous start point
+            if (loop != loop_old):
+                dx = x1-lastx
+                dy = y1-lasty
+                dist = sqrt(dx*dx + dy*dy)
+                if dist > Acc:
+                    cuts.append([[x1, y1]])
+                else:
+                    cuts[-1].append([x1, y1])
+            else:
+                cuts[-1].append([x1, y1])
+            lastx = x1
+            lasty = y1
+            loop_old = loop
 
-def message_box(title, message, version):
-    title = "%s (K40 Whisperer V%s)" % (title, version)
-    tkinter.messagebox.showinfo(title, message)
+    if inside_check:
+        #####################################################
+        # For each loop determine if other loops are inside #
+        #####################################################
+        Nloops = len(cuts)
+        LoopTree = []
+        for iloop in range(Nloops):
+            LoopTree.append([])
 
-################################################################################
-#                          Message Box ask OK/Cancel                           #
-################################################################################
+            ipoly = cuts[iloop]
+            ## Check points in other loops (could just check one) ##
+            if ipoly != []:
+                for jloop in range(Nloops):
+                    if jloop != iloop:
+                        inside = 0
+                        inside = inside + \
+                            point_inside_polygon(
+                                cuts[jloop][0][0], cuts[jloop][0][1], ipoly)
+                        if inside > 0:
+                            LoopTree[iloop].append(jloop)
+        #####################################################
+        for i in range(Nloops):
+            lns = []
+            lns.append(i)
+            remove_self_references(LoopTree, lns, LoopTree[i])
 
+        order = []
+        loops = list(range(Nloops))
+        for i in range(Nloops):
+            if LoopTree[i] != []:
+                addlist(LoopTree, order, loops, LoopTree[i])
+                LoopTree[i] = []
+            if loops[i] != []:
+                order.append(loops[i])
+                loops[i] = []
+    # END inside_check
+        ecoords_out = []
+        for i in order:
+            line = cuts[i]
+            for coord in line:
+                ecoords_out.append([coord[0], coord[1], i])
+    # END inside_check
+    else:
+        ecoords_out = []
+        for i in range(len(cuts)):
+            line = cuts[i]
+            for coord in line:
+                ecoords_out.append([coord[0], coord[1], i])
 
-def message_ask_ok_cancel(title, mess):
-    result = tkinter.messagebox.askokcancel(title, mess)
-    return result
+    return ecoords_out
 
-################################################################################
-#                         Debug Message Box                                    #
-################################################################################
+def remove_self_references(LoopTree, loop_numbers, loops):
+    for i in range(0, len(loops)):
+        for j in range(0, len(loop_numbers)):
+            if loops[i] == loop_numbers[j]:
+                loops.pop(i)
+                return
+        if LoopTree[loops[i]] != []:
+            loop_numbers.append(loops[i])
+            remove_self_references(
+                loop_numbers, LoopTree[loops[i]])
 
-
-def debug_message(message):
-    title = "Debug Message"
-    if DEBUG:
-        tkinter.messagebox.showinfo(title, message)
+def addlist(LoopTree, order, loops, list):
+    for i in list:
+        # this try/except is a bad hack fix to a recursion error. It should be fixed properly later.
+        try:
+            if LoopTree[i] != []:
+                # too many recursions here causes cmp error
+                addlist(LoopTree, order, loops, LoopTree[i])
+                LoopTree[i] = []
+        except:
+            pass
+        if loops[i] != []:
+            order.append(loops[i])
+            loops[i] = []

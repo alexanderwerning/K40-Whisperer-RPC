@@ -283,7 +283,7 @@ class egv:
                       Feed=None,
                       board_name="LASER-M2",
                       Raster_step=0,
-                      update_gui=None,
+                      reporter=None,
                       stop_calc=None,
                       FlipXoffset=0,
                       Rapid_Feed_Rate=0,
@@ -295,8 +295,8 @@ class egv:
         if stop_calc == None:
             stop_calc = []
             stop_calc.append(0)
-        if update_gui == None:
-            update_gui = self.none_function
+        if reporter == None:
+            reporter = self.none_function
         ########################################################
         if units == 'in':
             scale = 1000.0
@@ -359,7 +359,7 @@ class egv:
                 stamp = int(3*time())  # update every 1/3 of a second
                 if (stamp != timestamp):
                     timestamp = stamp  # interlock
-                    update_gui("Generating EGV Data: %.1f%%" %
+                    reporter.status("Generating EGV Data: %.1f%%" %
                                (100.0*float(i)/float(len(ecoords_in))))
                     if stop_calc[0] == True:
                         raise Exception("Action Stopped by User.")
@@ -422,7 +422,7 @@ class egv:
                 stamp = int(3*time())  # update every 1/3 of a second
                 if (stamp != timestamp):
                     timestamp = stamp  # interlock
-                    update_gui("Preprocessing Raster Data: %.1f%%" %
+                    reporter("Preprocessing Raster Data: %.1f%%" %
                                (100.0*float(i)/float(len(ecoords_in))))
                 y = ecoords_in[i][1]
                 if y != scanline_y:
@@ -433,7 +433,7 @@ class egv:
                         scanline[-1].insert(0, ecoords_in[i])
                     else:
                         scanline[-1].append(ecoords_in[i])
-            update_gui("Raster Data Ready")
+            reporter("Raster Data Ready")
             ###################################################
             lastx, lasty, last_loop = self.ecoord_adj(
                 scanline[0][0], scale, FlipXoffset)
@@ -477,7 +477,7 @@ class egv:
                 stamp = int(3*time())  # update every 1/3 of a second
                 if (stamp != timestamp):
                     timestamp = stamp  # interlock
-                    update_gui("Generating EGV Data: %.1f%%" %
+                    reporter("Generating EGV Data: %.1f%%" %
                                (100.0*float(cnt)/float(len(scanline))))
                     if stop_calc[0] == True:
                         raise Exception("Action Stopped by User.")
@@ -613,7 +613,7 @@ class egv:
         self.write(ord("N"))
         self.write(ord("S"))
         self.write(ord("E"))
-        update_gui("EGV Data Complete")
+        reporter("EGV Data Complete")
         return
 
     def make_egv_rapid(self, DX, DY, Feed=None, board_name="LASER-M2", finish=True):
