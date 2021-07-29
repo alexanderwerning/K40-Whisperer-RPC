@@ -744,28 +744,6 @@ class SVG_READER(inkex.Effect):
         except:
             raise Exception("Temp dir failed to delete:\n%s" % (tmp_dir))
 
-
-# def open_cdr_file(self,filename):
-# create OS temp folder
-# svg_temp_file=filename
-##        tmp_dir = tempfile.mkdtemp()
-# if self.inkscape_exe != None:
-# try:
-# svg_temp_file = os.path.join(tmp_dir, "k40w_temp.svg")
-##                txt2path_file = os.path.join(tmp_dir, "txt2path.svg")
-# self.document.write(svg_temp_file)
-##                cmd = [ self.inkscape_exe, "--export-text-to-path","--export-plain-svg",txt2path_file, svg_temp_file ]
-##                run_external(cmd, self.timout)
-# self.parse_svg(txt2path_file)
-# except Exception as e:
-##                raise Exception("Inkscape Execution Failed (while converting text to paths).\n\n"+str(e))
-# else:
-##            raise Exception("Inkscape Not found.")
-# try:
-# shutil.rmtree(tmp_dir)
-# except:
-##            raise Exception("Temp dir failed to delete:\n%s" %(tmp_dir) )
-
     def convert_text2paths(self):
         # create OS temp folder
         tmp_dir = tempfile.mkdtemp()
@@ -882,8 +860,7 @@ class SVG_READER(inkex.Effect):
         xmax = w_mm
         ymin = -h_mm
         ymax = 0.0
-        self.Make_PNG()
-
+        #self.Make_PNG()
         self.Xsize = xmax-xmin
         self.Ysize = ymax-ymin
         Xcorner = xmin

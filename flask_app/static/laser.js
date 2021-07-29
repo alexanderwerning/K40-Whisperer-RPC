@@ -23,6 +23,16 @@ state = {
     },
 }
 
+function setValue(name, value){
+    console.log("set value "+name+":"+value)
+    state.variables[name] = value;
+    if(name in state.listeners){
+        state.listeners[name].forEach(listener => {
+            listener(value);
+        });
+    }
+}
+
 function sendRequest(cmd, data=""){
     console.log(cmd+"("+data+") sent");
     fetch("/cmd", {
@@ -72,12 +82,7 @@ function statusStream() {
                 if(elm){
                     elm.value = message.value;
                 }else{
-                    state.variables[message.content] = message.value;
-                    if(message.content in state.listeners){
-                        state.listeners[message.content].forEach(listener => {
-                            listener(message.value);
-                        });
-                    }
+                    setValue(message.content, message.value);
                 }
                 break;
             default:
@@ -135,13 +140,24 @@ function setupCanvas(){
 
     ctx = canvas.getContext("2d");
 
-    canvas.addEventListener("click", (ev) => {
+    canvas.addEventListener("mousedown", (ev) => {
         var rect = canvas.getBoundingClientRect();
         var offset = transformCoord(state.variables["pos_offset"][0],state.variables["pos_offset"][1]);
         console.log(ev.clientX, rect.left, rect.width, canvas.width);
-        sendRequest("mouse_click", [(ev.clientX- rect.left-offset[0])/rect.width,
-                                    (ev.clientY- rect.top-offset[1])/rect.height]);
+        var canvas_pos = [(ev.clientX- rect.left-offset[0]),
+                        (ev.clientY- rect.top-offset[1])];
+        setValue("laser_pos",  inverseTransformCoord(canvas_pos[0], canvas_pos[1]));
+        var relative_pos = [canvas_pos[0]/rect.width, canvas_pos[1]/rect.height]
+        sendRequest("mouse_click", relative_pos);
     });
+
+    function inverseTransformCoord(x,y){
+        MAXX = state.variables["laser_bed_size"][0];
+        MINY = -state.variables["laser_bed_size"][1];
+        var new_x = MAXX*x/canvas.width;
+        var new_y = MINY*y/canvas.height;
+        return [new_x, new_y];
+    }
 
     function transformCoord(x,y){
         MAXX = state.variables["laser_bed_size"][0];
@@ -154,13 +170,28 @@ function setupCanvas(){
     function draw_target(){
         var offset = transformCoord(state.variables["pos_offset"][0], state.variables["pos_offset"][1]);
         var coord = transformCoord(state.variables["laser_pos"][0], state.variables["laser_pos"][1]);
-        ctx.fillStyle = "#FF0000";
-        ctx.strokeStyle = "#FF0000";
+        ctx.fillStyle = "#7f7f7f";
+        ctx.strokeStyle = "#7f7f7f";
         ctx.beginPath();
+        var r = 5;
+        var xpos = offset[0]+coord[0]-0.5;
+        var ypos = offset[1]+coord[1]-0.5
         ctx.ellipse(
-            offset[0]+coord[0]-0.5,
-            offset[1]+coord[1]-0.5,
-             10, 10, 0, 0, 2.01 * Math.PI);  
+            xpos,
+            ypos,
+             r, r, 0, 0, 2.01 * Math.PI);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fill();
+        
+        ctx.strokeStyle = "#AAAAAA";
+        ctx.beginPath();
+        if(offset[0] != 0 || offset[1] != 0){
+            ctx.moveTo(xpos-r,ypos);
+            ctx.lineTo(xpos+r,ypos);
+            ctx.moveTo(xpos,ypos+r);
+            ctx.lineTo(xpos,ypos-r);
+        }
         ctx.closePath();
         ctx.stroke();
     }

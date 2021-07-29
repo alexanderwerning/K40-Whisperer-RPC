@@ -1,7 +1,7 @@
 """This module collects all functions pulled out from k40_whisperer.py"""
 
 from time import time
-
+from math import sqrt
 DEBUG = False
 QUIET = False
 
@@ -13,11 +13,11 @@ def format_time(time_in_seconds):
         h, m = divmod(m, 60)
         res = ""
         if h > 0:
-            res = "%dh " % (h)
+            res = f"{h}h "
         if m > 0:
-            res += "%dm " % (m)
+            res += f"{m}m "
         if h == 0:
-            res += "%ds " % (s)
+            res += f"{s}s "
         return res
     else:
         return "?"
@@ -337,28 +337,58 @@ except:
     PYCLIPPER = False
 
 
-def offset_eccords(ecoords_in, offset_val):
-    if not PYCLIPPER:
-        return ecoords_in
+def offset_ecoords(ecoords_in, offset_val):
+    # the (original) pyclipper implementation is not needed here,
+    # with convex polygons we can simply shift the vertices.
+    # this only applies for the trace coords of course
 
-    loop_num = ecoords_in[0][2]
-    pco = pyclipper.PyclipperOffset()
+    filtered_ecoords = []
+    first = True
+    last_x = 0
+    last_y = 0
+    removed = []
+    for i, ecoord in enumerate(ecoords_in):
+        if first:
+            first = False
+            last_x = ecoord[0]
+            last_y = ecoord[1]
+            filtered_ecoords.append(ecoord)
+        elif last_x != ecoord[0] or last_y != ecoord[1]:
+            filtered_ecoords.append(ecoord)
+        else:
+            removed.append(i)
+
+    edge_normals = []
+    for i in range(len(filtered_ecoords)-1):
+        x1, y1 = filtered_ecoords[i][0], filtered_ecoords[i][1]
+        x2, y2 = filtered_ecoords[i+1][0], filtered_ecoords[i+1][1]
+        
+        doublelength = 2*sqrt((x2-x1)**2+(y2-y1)**2)
+        edge_normals.append([(y2-y1)/doublelength, -(x2-x1)/doublelength])
+    
+    x1, y1 = filtered_ecoords[-1][0], filtered_ecoords[-1][1]
+    x2, y2 = filtered_ecoords[0][0], filtered_ecoords[0][1]
+    doublelength = 2*sqrt((x2-x1)**2+(y2-y1)**2)
+    loop_normal = [(y2-y1)/doublelength, -(x2-x1)/doublelength]
+    edge_normals.append(loop_normal)
+    edge_normals.insert(0, loop_normal)
+
+    point_normals = []
+    for i in range(len(edge_normals)-1):
+        en1 = edge_normals[i]
+        en2 = edge_normals[i]
+        point_normals.append([en1[0]+en2[0], en1[1]+en2[1]])
+
     ecoords_out = []
-    pyclip_path = []
-    for i in range(0, len(ecoords_in)):
-        pyclip_path.append([ecoords_in[i][0]*1000, ecoords_in[i][1]*1000])
+    for i, ecoord in enumerate(filtered_ecoords):
+        ecoords_out.append([ecoord[0]+point_normals[i][0]*offset_val,
+                            ecoord[1]+point_normals[i][1]*offset_val,
+                            ecoord[2]])
+        if i+1 in removed:
+            ecoords_out.append(ecoords_out[-1])
+    
+    ecoords_out.append(ecoords_out[0])
 
-    pco.AddPath(pyclip_path, pyclipper.JT_ROUND,
-                pyclipper.ET_CLOSEDPOLYGON)
-    try:
-        plot_coords = pco.Execute(offset_val*1000.0)[0]
-        plot_coords.append(plot_coords[0])
-    except:
-        plot_coords = []
-
-    for i in range(0, len(plot_coords)):
-        ecoords_out.append(
-            [plot_coords[i][0]/1000.0, plot_coords[i][1]/1000.0, loop_num])
     return ecoords_out
 
 def scale_vector_coords(coords, startx, starty, laser_scale, isRotary):
@@ -415,8 +445,7 @@ def make_trace_path(design_bounds, laser_scale, RengData,
     trace_coords = []
     if all_coords != []:
         trace_coords = my_hull.convexHullecoords(all_coords)
-        gap = trace_gap
-        trace_coords = offset_eccords(trace_coords, trace_gap)
+        trace_coords = offset_ecoords(trace_coords, trace_gap)
 
     trace_coords, startx, starty = scale_vector_coords(
         trace_coords, startx, starty, laser_scale, isRotary)

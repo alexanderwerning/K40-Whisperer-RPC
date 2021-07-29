@@ -1093,9 +1093,8 @@ class Laser_Service():
         x_offset = round(relative_x_offset * (xmax-xmin), 3)
         y_offset = round(relative_y_offset * (ymax-ymin), 3)
 
-        Xnew = self.laser_pos.x + (xmax-xmin)*x_offset
-
-        Ynew = self.laser_pos.y - y_offset
+        Xnew = self.laser_pos.x + x_offset
+        Ynew = self.laser_pos.y + y_offset
         if (Xnew <= self.laser_bed_size.x+.001
             and Ynew >= -self.laser_bed_size.y-.001):
             self.move_head_window_temporary(Position(x_offset, -y_offset))

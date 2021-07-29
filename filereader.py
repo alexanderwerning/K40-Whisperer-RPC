@@ -57,7 +57,7 @@ def Open_SVG(filename, design_scale, inkscape_path, ink_timeout, reporter):
     ymax = svg_reader.Ysize*design_scale
     xmin = 0
     ymin = 0
-
+    
     Design_bounds = (xmin, xmax, ymin, ymax)
 
     ##########################
@@ -74,7 +74,7 @@ def Open_SVG(filename, design_scale, inkscape_path, ink_timeout, reporter):
     ###   Load Image       ###
     ##########################
     RengData = ECoord()
-    RengData.set_image(svg_reader.raster_PIL)
+    #RengData.set_image(svg_reader.raster_PIL) #FIXME not created in svg_reader, too slow
 
     margin = 0.0625  # A bit of margin to prevent the warningwindow for designs that are close to being within the bounds
     if Design_bounds[0] > VengData.bounds[0]+margin or\
