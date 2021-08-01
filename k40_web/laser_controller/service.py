@@ -992,13 +992,9 @@ class Laser_Service():
 
     def Get_Design_Bounds(self):
         if self.rotate:
-            ymin = self.design_bounds.xmin
-            ymax = self.design_bounds.xmax
-            xmin = -self.design_bounds.ymax
-            xmax = -self.design_bounds.ymin
+            return self.design_bounds.rotate()
         else:
-            xmin, xmax, ymin, ymax = self.design_bounds
-        return DesignBounds(xmin, xmax, ymin, ymax)
+            return self.design_bounds
 
     def move_head_window_temporary(self, offset):
         if self.GUI_Disabled:

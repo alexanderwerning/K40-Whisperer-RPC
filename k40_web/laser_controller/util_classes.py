@@ -80,3 +80,8 @@ class DesignBounds():
     @property
     def bounds(self):
         return self.xmin, self.xmax, self.ymin, self.ymax
+
+    def rotate(self):
+        self.xmin, self.ymin = self.ymin, self.xmin
+        self.xmax, self.ymax = self.ymax, self.xmax
+        return self
