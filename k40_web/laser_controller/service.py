@@ -177,7 +177,7 @@ class Laser_Service():
     def Quit_Click(self, event):
         self.reporter.status("Exiting!")
         self.Release_USB()
-    
+
     def mouse_click(self, x_display_unit, y_display_unit):
         x_mm = x_display_unit / self.units.length_scale()
         y_mm = y_display_unit / self.units.length_scale()
@@ -329,14 +329,6 @@ class Laser_Service():
                 HUD_X, HUD_Y, fill="black", text=self.Gcde_time, anchor="se", tags="HUD")
         ##########################################
 
-    def Settings_ReLoad_Click(self, event):
-        win_id = self.grab_current()
-
-    def Close_Current_Window_Click(self, event=None):
-        current_name = event.widget.winfo_parent()
-        win_id = event.widget.nametowidget(current_name)
-        win_id.destroy()
-
     # Left Column #
     #############################
     def Entry_Reng_feed_Check(self):
@@ -345,12 +337,10 @@ class Laser_Service():
             vfactor = (25.4/60.0)*self.units.velocity_scale()
             low_limit = self.min_raster_speed*vfactor
             if value < low_limit:
-                self.reporter.status(
-                    " Feed Rate should be greater than or equal to %f " % (low_limit))
+                self.reporter.status(f"Feed Rate should be greater than or equal to {low_limit}")
                 return 2  # Value is invalid number
         except:
             return 3     # Value not a number
-        self.refreshTime()
         return 0         # Value is a valid number
 
     def Entry_Reng_feed_Callback(self, value):
@@ -365,12 +355,10 @@ class Laser_Service():
             vfactor = (25.4/60.0)*self.units.velocity_scale()
             low_limit = self.min_vector_speed*vfactor
             if value < low_limit:
-                self.reporter.status(
-                    " Feed Rate should be greater than or equal to %f " % (low_limit))
+                self.reporter.status("Feed Rate should be greater than or equal to {low_limit}")
                 return 2  # Value is invalid number
         except:
             return 3     # Value not a number
-        self.refreshTime()
         return 0         # Value is a valid number
 
     def Entry_Veng_feed_Callback(self, value):
@@ -385,12 +373,10 @@ class Laser_Service():
             vfactor = (25.4/60.0)*self.units.velocity_scale()
             low_limit = self.min_vector_speed*vfactor
             if value < low_limit:
-                self.reporter.status(
-                    " Feed Rate should be greater than or equal to %f " % (low_limit))
+                self.reporter.status("Feed Rate should be greater than or equal to {low_limit}")
                 return 2  # Value is invalid number
         except:
             return 3     # Value not a number
-        self.refreshTime()
         return 0         # Value is a valid number
 
     def Entry_Vcut_feed_Callback(self, value):
@@ -403,7 +389,7 @@ class Laser_Service():
         try:
             value = float(self.jog_step)
             if value <= 0.0:
-                self.reporter.status(" Step should be greater than 0.0 ")
+                self.reporter.status("Step should be greater than 0.0")
                 return 2  # Value is invalid number
         except:
             return 3     # Value not a number
@@ -418,10 +404,10 @@ class Laser_Service():
         try:
             value = float(self.gotoX)
             if (value < 0.0) and (not self.HomeUR):
-                self.reporter.status(" Value should be greater than 0.0 ")
+                self.reporter.status("Value should be greater than 0.0")
                 return 2  # Value is invalid number
             elif (value > 0.0) and self.HomeUR:
-                self.reporter.status(" Value should be less than 0.0 ")
+                self.reporter.status("Value should be less than 0.0")
                 return 2  # Value is invalid number
         except:
             return 3     # Value not a number
@@ -435,7 +421,7 @@ class Laser_Service():
         try:
             value = float(self.gotoY)
             if value > 0.0:
-                self.reporter.status(" Value should be less than 0.0 ")
+                self.reporter.status("Value should be less than 0.0")
                 return 2  # Value is invalid number
         except:
             return 3     # Value not a number
@@ -449,8 +435,7 @@ class Laser_Service():
         try:
             value = get_raster_step_1000in(self.rast_step)
             if value <= 0 or value > 63:
-                self.reporter.status(
-                    " Step should be between 0.001 and 0.063 in")
+                self.reporter.status("Step should be between 0.001 and 0.063 in")
                 return 2  # Value is invalid number
         except:
             return 3     # Value not a number
@@ -458,7 +443,6 @@ class Laser_Service():
 
     def Entry_Rstep_Callback(self, varName, index, mode):
         self.RengData.reset_path()
-        self.refreshTime()
         self.entry_set("Rstep", self.Entry_Rstep_Check(), new=1)
 
 ##    ###########################
@@ -479,19 +463,12 @@ class Laser_Service():
         self.bezier_plot()
 
     def bezier_plot(self):
-        self.BezierCanvas.delete('bez')
-
-        #self.BezierCanvas.create_line( 5,260-0,260,260-255,fill="black", capstyle="round", width = 2, tags='bez')
         M1 = float(self.bezier_M1)
         M2 = float(self.bezier_M2)
         w = float(self.bezier_weight)
         num = 10
         x, y = generate_bezier(M1, M2, w, n=num)
-        for i in range(0, num):
-            self.BezierCanvas.create_line(5+x[i], 260-y[i], 5+x[i+1], 260-y[i+1], fill="black",
-                                          capstyle="round", width=2, tags='bez')
-        self.BezierCanvas.create_text(
-            128, 0, text="Output Level vs. Input Level", anchor="n", tags='bez')
+        self.reporter.data("bezier_plot", dict(x=x, y=y))
 
     #############################
 
@@ -544,7 +521,7 @@ class Laser_Service():
         try:
             value = int(self.n_egv_passes)
             if value < 1:
-                self.reporter.status(" EGV passes should be 1 or higher")
+                self.reporter.status("EGV passes should be 1 or higher")
                 return 2  # Value is invalid number
         except:
             return 3     # Value not a number
@@ -559,7 +536,7 @@ class Laser_Service():
         try:
             value = float(self.laser_bed_size.x)
             if value <= 0.0:
-                self.reporter.status(" Width should be greater than 0 ")
+                self.reporter.status("Width should be greater than 0")
                 return 2  # Value is invalid number
         except:
             return 3     # Value not a number
@@ -574,7 +551,7 @@ class Laser_Service():
         try:
             value = float(self.laser_bed_size.y)
             if value <= 0.0:
-                self.reporter.status(" Height should be greater than 0 ")
+                self.reporter.status("Height should be greater than 0")
                 return 2  # Value is invalid number
         except:
             return 3     # Value not a number
@@ -590,8 +567,7 @@ class Laser_Service():
         try:
             value = float(self.laser_pos.xscale)
             if value <= 0.0:
-                self.reporter.status(
-                    " X scale factor should be greater than 0 ")
+                self.reporter.status("X scale factor should be greater than 0")
                 return 2  # Value is invalid number
         except:
             return 3     # Value not a number
@@ -607,8 +583,7 @@ class Laser_Service():
         try:
             value = float(self.laser_pos.yscale)
             if value <= 0.0:
-                self.reporter.status(
-                    " Y scale factor should be greater than 0 ")
+                self.reporter.status("Y scale factor should be greater than 0")
                 return 2  # Value is invalid number
         except:
             return 3     # Value not a number
@@ -616,7 +591,7 @@ class Laser_Service():
         return 0         # Value is a valid number
 
     def Entry_Laser_Y_Scale_Callback(self, varName, index, mode):
-        self.entry_set(self.Entry_Laser_Y_Scale,
+        self.entry_set("Laser_Y_Scale",
                        self.Entry_Laser_Y_Scale_Check(), new=1)
 
     #############################
@@ -624,8 +599,7 @@ class Laser_Service():
         try:
             value = float(self.laser_scale.r)
             if value <= 0.0:
-                self.reporter.status(
-                    " Rotary scale factor should be greater than 0 ")
+                self.reporter.status("Rotary scale factor should be greater than 0")
                 return 2  # Value is invalid number
         except:
             return 3     # Value not a number
@@ -643,8 +617,7 @@ class Laser_Service():
             vfactor = (25.4/60.0)*self.units.velocity_scale()
             low_limit = 1.0*vfactor
             if value != 0 and value < low_limit:
-                self.reporter.status(
-                    " Rapid feed should be greater than or equal to %f (or 0 for default speed) " % (low_limit))
+                self.reporter.status(f"Rapid feed should be greater than or equal to {low_limit} (or 0 for default speed)")
                 return 2  # Value is invalid number
         except:
             return 3     # Value not a number
@@ -665,7 +638,6 @@ class Laser_Service():
                 return 2  # Value is invalid number
         except:
             return 3     # Value not a number
-        self.refreshTime()
         return 0         # Value is a valid number
 
     def Entry_Reng_passes_Callback(self, varName, index, mode):
@@ -682,11 +654,10 @@ class Laser_Service():
                 return 2  # Value is invalid number
         except:
             return 3     # Value not a number
-        self.refreshTime()
         return 0         # Value is a valid number
 
     def Entry_Veng_passes_Callback(self, varName, index, mode):
-        self.entry_set(self.Entry_Veng_passes,
+        self.entry_set("Veng_passes",
                        self.Entry_Veng_passes_Check(), new=1)
     #############################
 
@@ -699,7 +670,6 @@ class Laser_Service():
                 return 2  # Value is invalid number
         except:
             return 3     # Value not a number
-        self.refreshTime()
         return 0         # Value is a valid number
 
     def Entry_Vcut_passes_Callback(self, varName, index, mode):
@@ -716,7 +686,6 @@ class Laser_Service():
                 return 2  # Value is invalid number
         except:
             return 3     # Value not a number
-        self.refreshTime()
         return 0         # Value is a valid number
 
     def Entry_Gcde_passes_Callback(self, varName, index, mode):
@@ -730,7 +699,6 @@ class Laser_Service():
             value = float(self.trace_gap)
         except:
             return 3     # Value not a number
-        self.menu_View_Refresh()
         return 0         # Value is a valid number
 
     def Entry_Trace_Gap_Callback(self, varName, index, mode):
@@ -745,8 +713,7 @@ class Laser_Service():
             vfactor = (25.4/60.0)*self.units.velocity_scale()
             low_limit = self.min_vector_speed*vfactor
             if value < low_limit:
-                self.reporter.status(
-                    " Feed Rate should be greater than or equal to %f " % (low_limit))
+                self.reporter.status(f"Feed Rate should be greater than or equal to {low_limit}")
                 return 2  # Value is invalid number
         except:
             return 3     # Value not a number
@@ -758,30 +725,19 @@ class Laser_Service():
                        self.Entry_Trace_Speed_Check(), new=1)
 
     #############################
-    def Inkscape_Path_Click(self, event):
-        self.Inkscape_Path_Message()
-        win_id = self.grab_current()
-        newfontdir = askopenfilename(filetypes=[("Executable Files", ("inkscape.exe", "*inkscape*")),
-                                                ("All Files", "*")],
-                                     initialdir=self.inkscape_path)
-        if newfontdir != "" and newfontdir != ():
-            if type(newfontdir) is not str:
-                newfontdir = newfontdir.encode("utf-8")
-            self.inkscape_path.set(newfontdir)
 
-        try:
-            win_id.withdraw()
-            win_id.deiconify()
-        except:
-            pass
-
-    def Inkscape_Path_Message(self, event=None):
+    def Entry_Inkscape_Path(self, inkscape_path):
         if self.inkscape_warning == False:
             self.inkscape_warning = True
             msg1 = "Beware:"
             msg2 = "Most people should leave the 'Inkscape Executable' entry field blank. "
             msg3 = "K40 Whisperer will find Inkscape in one of the the standard locations after you install Inkscape."
             self.reporter.information(msg1+" "+msg2+msg3)
+        path = Path(inkscape_path)
+        if not path.exists():
+            self.reporter.error("The path {path} does not exist")
+        else:
+            self.inkscape_path = path
 
     def Reload_design(self):
         self.Open_design(self.DESIGN_FILE)
@@ -1023,7 +979,6 @@ class Laser_Service():
             self.pos_offset = new_pos_offset
             self.reporter.data("pos_offset", self.pos_offset.aslist())
 
-
     def Move_in_design_space(self, relative_x_offset, relative_y_offset):
         xmin, xmax, ymin, ymax = self.Get_Design_Bounds().bounds
 
@@ -1197,35 +1152,6 @@ class Laser_Service():
             dxmils, dymils, Feed=Rapid_feed, board_name=self.board_name)
         self.send_egv_data(Rapid_data, 1, None)
         self.stop[0] = True
-
-    def set_gui(self, new_state="normal"):
-        self.reporter.data("set_gui:", new_state)
-        print("set_gui", new_state)
-        pass
-        # if new_state == "normal":
-        #     self.GUI_Disabled = False
-        # else:
-        #     self.GUI_Disabled = True
-
-        # try:
-        #     self.menuBar.entryconfigure("File", state=new_state)
-        #     self.menuBar.entryconfigure("View", state=new_state)
-        #     self.menuBar.entryconfigure("Tools", state=new_state)
-        #     self.menuBar.entryconfigure("Settings", state=new_state)
-        #     self.menuBar.entryconfigure("Help", state=new_state)
-        #     self.PreviewCanvas.configure(state=new_state)
-
-        #     for w in self.master.winfo_children():
-        #         try:
-        #             w.configure(state=new_state)
-        #         except:
-        #             pass
-        #     self.Stop_Button.configure(state="normal")
-        #     #self.statusbar.configure(state="normal")
-        #     #self.master.update()
-        # except:
-        #     if DEBUG:
-        #         self.reporter.error(traceback.format_exc())
 
     def Vector_Cut(self, output_filename=None):
         self.Prepare_for_laser_run("Vector Cut: Processing Vector Data.")
@@ -1771,45 +1697,6 @@ class Laser_Service():
         print("menu_View_Refresh")
         pass
 
-        # try:
-        #     app.master.title(title_text+"   " + self.DESIGN_FILE)
-        # except:
-        #     pass
-        # dummy_event = Event()
-        # dummy_event.widget = self.master
-        # self.Master_Configure(dummy_event, 1)
-        # self.Plot_Data()
-        # xmin, xmax, ymin, ymax = self.Get_Design_Bounds().bounds
-        # W = xmax-xmin
-        # H = ymax-ymin
-
-        # if self.units == "in":
-        #     X_display = self.laser_pos.x + self.pos_offset.x/1000.0
-        #     Y_display = self.laser_pos.y + self.pos_offset.y/1000.0
-        #     W_display = W
-        #     H_display = H
-        #     U_display = self.units
-        # else:
-        #     X_display = (
-        #         self.laser_pos.x + self.pos_offset.x/1000.0)*self.units_scale
-        #     Y_display = (
-        #         self.laser_pos.y + self.pos_offset.y/1000.0)*self.units_scale
-        #     W_display = W*self.units_scale
-        #     H_display = H*self.units_scale
-        #     U_display = self.units
-        # if self.HomeUR:
-        #     X_display = -X_display
-
-        # self.reporter.status(" Current Position: X=%.3f Y=%.3f    ( W X H )=( %.3f%s X %.3f%s ) "
-        #                        % (X_display,
-        #                            Y_display,
-        #                            W_display,
-        #                            U_display,
-        #                            H_display,
-        #                            U_display))
-
-        # self.statusbar.configure(bg='white')
-
     def Entry_Design_Scale_Callback(self, varname, index, mode):
         self.menu_Reload_Design()
 
@@ -1820,11 +1707,6 @@ class Laser_Service():
             elif self.VengData.sorted == True:
                 self.menu_Reload_Design()
 
-    def menu_Mode_Change(self):
-        dummy_event = Event()
-        dummy_event.widget = self.master
-        self.Master_Configure(dummy_event, 1)
-
     def menu_Calc_Raster_Time(self, event=None):
         self.set_gui("disabled")
         self.stop[0] = False
@@ -1833,15 +1715,6 @@ class Laser_Service():
         self.refreshTime()
         self.set_gui("normal")
         self.menu_View_Refresh()
-
-    def bindConfigure(self, event):
-        if not self.initComplete:
-            self.initComplete = 1
-            self.menu_Mode_Change()
-
-    def Recalculate_RQD_Click(self, event):
-        self.menu_View_Refresh()
-
 
     ##########################################
     #        CANVAS PLOTTING STUFF           #
