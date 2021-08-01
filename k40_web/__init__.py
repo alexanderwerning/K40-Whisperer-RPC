@@ -11,14 +11,14 @@ from pathlib import Path
 from k40_web.worker import work
 
 from queue import Queue, Empty
-import threading
+from threading import Thread
 
 statusQueue = Queue(10)
 taskQueue = Queue(10)
 
-class MyThread (threading.Thread):
+class WorkerThread (Thread):
     def __init__(self):
-        threading.Thread.__init__(self)
+        Thread.__init__(self)
     def run(self):
         print ("Starting " + self.name)
         try:
@@ -36,10 +36,10 @@ def event_stream():
         except Empty:
             pass
 
-def send_task(ch, msg):
+def send_task(msg):
     taskQueue.put(msg)
 
-def send_status(ch, msg):
+def send_status(msg):
     statusQueue.put(msg)
 '''
 [("SVG Files ", "*.svg"),
@@ -69,7 +69,7 @@ def create_app(test_config=None):
     if __name__ == "__main__":
         app.run(threaded=True)
     
-    mythread = MyThread()
+    mythread = WorkerThread()
     mythread.start()
     
     UPLOAD_FOLDER = './uploads'
@@ -90,21 +90,33 @@ def create_app(test_config=None):
     except OSError:
         pass
 
-    channel = ""
 
     # a simple page that says hello
     @app.route('/')
     def index():
         return render_template('index.html')
-    
+
+
     @app.route('/cmd', methods=['GET', 'POST'])
     def send_command():
         # if cmd legal, exists etc
         print(json.dumps(request.json))
-        send_task(channel, json.dumps(request.json))
+        send_task(json.dumps(request.json))
 
         return "OK"
-    
+
+
+    @app.route("/settings/<param>", methods=["GET", "POST"])
+    def command_sync(param):
+        print(json.dumps(request.json))
+        if request.method == "POST":
+            send_task(json.dumps(dict(cmd="set", key=param, value=request.json)))
+        else:
+            send_task(json.dumps(dict(cmd="get", key=param)))
+
+        return "OK"
+
+
     @app.route('/upload', methods=['POST'])
     def upload():
         # check if the post request has the file part
@@ -123,20 +135,20 @@ def create_app(test_config=None):
             file_path = Path(app.config['UPLOAD_FOLDER']) / filename
             file.save(file_path)
             command = dict(command="Open_design", value=file_path.__fspath__())
-            send_task(channel, json.dumps(command))
+            send_task(json.dumps(command))
             return "OK"
         else:
             print("file format not accepted")
         return "NOT OK"
 
+
     @app.route('/stream')
     def stream():
         return Response(event_stream(),
-                          mimetype="text/event-stream")
-    
+                        mimetype="text/event-stream")
+
     from . import db
     db.init_app(app)
 
     ##app.teardown_appcontext(connection.close())
     return app
-
