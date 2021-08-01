@@ -447,15 +447,12 @@ def scale_vector_coords(coords, startx, starty, laser_scale, isRotary):
     return coords_scale, scaled_startx, scaled_starty
 
 def make_trace_path(design_bounds, laser_scale, RengData,
-    Vcut_coords, Veng_coords, Gcode_coords, trace_gap, design_transform, isRotary):
+    Vcut_coords, Veng_coords, Gcode_coords, trace_gap, isRotary):
     my_hull = hull2D()
-    xmin, xmax, ymin, ymax = design_bounds
+    xmin, xmax, ymin, ymax = design_bounds.bounds
     startx = xmin
     starty = ymax
 
-    #######################################
-
-    #######################################
 
     RengHullCoords = []
     Xscale = 1/laser_scale.x

@@ -1369,7 +1369,7 @@ class Laser_Service():
         
         if self.RengData.ecoords == []:
             self.make_raster_coords()
-        return make_trace_path(bounds, self.laser_scale, self.RengData, Vcut_coords, Veng_coords, Gcode_coords, self.trace_gap, self.design_transform, self.isRotary)
+        return make_trace_path(bounds, self.laser_scale, self.RengData, Vcut_coords, Veng_coords, Gcode_coords, self.trace_gap, self.isRotary)
 
     ################################################################################
 
