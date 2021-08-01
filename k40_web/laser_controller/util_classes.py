@@ -86,6 +86,11 @@ class DesignBounds():
         self.xmax, self.ymax = self.ymax, self.xmax
         return self
     
+    def contains(self, other, margin=0):
+        return (self.xmin < other.xmin+margin and
+                self.xmax > other.xmax-margin and
+                self.ymin < other.ymin+margin and
+                self.ymax > other.ymax-margin)
     def from_tuple(tuple):
         assert len(tuple) == 4
         return DesignBounds(*tuple)

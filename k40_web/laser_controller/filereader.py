@@ -80,20 +80,13 @@ def Open_SVG(filename, design_scale, svg_options,  reporter):
     #RengData.set_image(svg_reader.raster_PIL) #FIXME not created in svg_reader, too slow
 
     margin = 0.0625  # A bit of margin to prevent the warningwindow for designs that are close to being within the bounds
-    if Design_bounds[0] > VengData.bounds[0]+margin or\
-        Design_bounds[0] > VcutData.bounds[0]+margin or\
-        Design_bounds[1] < VengData.bounds[1]-margin or\
-        Design_bounds[1] < VcutData.bounds[1]-margin or\
-        Design_bounds[2] > VengData.bounds[2]+margin or\
-        Design_bounds[2] > VcutData.bounds[2]+margin or\
-        Design_bounds[3] < VengData.bounds[3]-margin or\
-        Design_bounds[3] < VcutData.bounds[3]-margin:
-        line1 = "Warning:\n"
-        line2 = "There is vector cut or vector engrave data located outside of the SVG page bounds.\n\n"
-        line3 = "K40 Whisperer will attempt to use all of the vector data.  "
-        line4 = "Please verify that the vector data is not outside of your lasers working area before engraving."
-        reporter.warning(line1+line2+line3+line4)
-    
+    if not design_bounds.contains(DesignBounds.from_tuple(VengData.bounds)) or \
+       not design_bounds.contains(DesignBounds.from_tuple(VcutData.bounds)):
+        text = """There is vector cut or vector engrave data located outside of the SVG page bounds.
+K40 Whisperer will attempt to use all of the vector data.
+Please verify that the vector data is not outside of your lasers working area before engraving."""
+        reporter.warning(text)
+
     return VcutData, VengData, RengData, design_bounds
 
 
