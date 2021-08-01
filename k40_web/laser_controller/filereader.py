@@ -1,7 +1,9 @@
+from k40_web.laser_controller.util_classes import DesignBounds
 from k40_web.laser_controller.ecoords import ECoord
 from k40_web.laser_controller.svg_reader import SVG_PXPI_EXCEPTION, SVG_READER, SVG_TEXT_EXCEPTION
 from k40_web.laser_controller.dxf import DXF_CLASS
 from k40_web.laser_controller.g_code_library import G_Code_Rip
+from k40_web.laser_controller.util_classes import DesignBounds
 
 def Open_SVG(filename, design_scale, svg_options,  reporter):
     svg_reader = SVG_READER()
@@ -59,7 +61,7 @@ def Open_SVG(filename, design_scale, svg_options,  reporter):
     xmin = 0
     ymin = 0
     
-    Design_bounds = (xmin, xmax, ymin, ymax)
+    design_bounds = DesignBounds(xmin, xmax, ymin, ymax)
 
     ##########################
     ###   Create ECOORDS   ###
@@ -92,7 +94,7 @@ def Open_SVG(filename, design_scale, svg_options,  reporter):
         line4 = "Please verify that the vector data is not outside of your lasers working area before engraving."
         reporter.warning(line1+line2+line3+line4)
     
-    return VcutData, VengData, RengData, Design_bounds
+    return VcutData, VengData, RengData, design_bounds
 
 
 def Open_G_Code(filename, reporter):
@@ -110,9 +112,9 @@ def Open_G_Code(filename, reporter):
     ecoords = g_rip.generate_laser_paths(g_rip.g_code_data)
     GcodeData = ECoord()
     GcodeData.set_ecoords(ecoords, data_sorted=True)
-    Design_bounds = GcodeData.bounds
+    design_bounds = DesignBounds.from_tuple(GcodeData.bounds)
 
-    return GcodeData, Design_bounds
+    return GcodeData, design_bounds
 
 
 def Open_DXF(filename, design_scale, reporter):
@@ -198,6 +200,6 @@ def Open_DXF(filename, design_scale, reporter):
     xmax = max(VcutData.bounds[1], VengData.bounds[1])
     ymin = min(VcutData.bounds[2], VengData.bounds[2])
     ymax = max(VcutData.bounds[3], VengData.bounds[3])
-    Design_bounds = (xmin, xmax, ymin, ymax)
+    design_bounds = DesignBounds(xmin, xmax, ymin, ymax)
 
-    return VcutData, VengData, Design_bounds
+    return VcutData, VengData, design_bounds

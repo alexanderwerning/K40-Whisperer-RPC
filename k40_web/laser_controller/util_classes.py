@@ -71,7 +71,7 @@ class SVG_Settings():
 
 
 class DesignBounds():
-    def __init__(self, xmin, xmax, ymin, ymax):
+    def __init__(self, xmin=0, xmax=0, ymin=0, ymax=0):
         self.xmin = xmin
         self.xmax = xmax
         self.ymin = ymin
@@ -85,3 +85,7 @@ class DesignBounds():
         self.xmin, self.ymin = self.ymin, self.xmin
         self.xmax, self.ymax = self.ymax, self.xmax
         return self
+    
+    def from_tuple(tuple):
+        assert len(tuple) == 4
+        return DesignBounds(*tuple)
