@@ -590,3 +590,24 @@ def addlist(LoopTree, order, loops, list):
         if loops[i] != []:
             order.append(loops[i])
             loops[i] = []
+
+def mirror_rotate_vector_coords(coords, design_bounds, design_transform):
+    if not design_transform.rotate and not design_transform.mirror:
+        return coords.copy()
+
+    xmin = design_bounds.xmin
+    xmax = design_bounds.xmax
+    coords_rotate_mirror = []
+
+    for i in range(len(coords)):
+        coords_rotate_mirror.append(coords[i][:])
+        if design_transform.mirror:
+            coords_rotate_mirror[i][0] = xmin + xmax-coords_rotate_mirror[i][0]
+
+        if design_transform.rotate:
+            x = coords_rotate_mirror[i][0]
+            y = coords_rotate_mirror[i][1]
+            coords_rotate_mirror[i][0] = -y
+            coords_rotate_mirror[i][1] = x
+
+    return coords_rotate_mirror

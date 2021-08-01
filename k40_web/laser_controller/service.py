@@ -21,7 +21,7 @@ from PIL import ImageOps
 import PIL
 from time import time
 import os
-from k40_web.laser_controller.utils import format_time, get_raster_step_1000in, generate_bezier, ecoords2lines, make_raster_coords, scale_vector_coords, make_trace_path, optimize_paths
+from k40_web.laser_controller.utils import format_time, get_raster_step_1000in, generate_bezier, ecoords2lines, make_raster_coords, scale_vector_coords, make_trace_path, optimize_paths, mirror_rotate_vector_coords
 from k40_web.laser_controller.nano_library import K40_CLASS
 from k40_web.laser_controller.egv import egv
 from k40_web.laser_controller.ecoords import ECoord
@@ -342,7 +342,7 @@ class Laser_Service():
     def Entry_Reng_feed_Check(self):
         try:
             value = float(self.Reng_feed)
-            vfactor = (25.4/60.0)/self.feed_factor()
+            vfactor = (25.4/60.0)*self.units.velocity_scale()
             low_limit = self.min_raster_speed*vfactor
             if value < low_limit:
                 self.reporter.status(
@@ -362,7 +362,7 @@ class Laser_Service():
     def Entry_Veng_feed_Check(self):
         try:
             value = float(self.Veng_feed)
-            vfactor = (25.4/60.0)/self.feed_factor()
+            vfactor = (25.4/60.0)*self.units.velocity_scale()
             low_limit = self.min_vector_speed*vfactor
             if value < low_limit:
                 self.reporter.status(
@@ -382,7 +382,7 @@ class Laser_Service():
     def Entry_Vcut_feed_Check(self):
         try:
             value = float(self.Vcut_feed)
-            vfactor = (25.4/60.0)/self.feed_factor()
+            vfactor = (25.4/60.0)*self.units.velocity_scale()
             low_limit = self.min_vector_speed*vfactor
             if value < low_limit:
                 self.reporter.status(
@@ -640,7 +640,7 @@ class Laser_Service():
     def Entry_Laser_Rapid_Feed_Check(self):
         try:
             value = float(self.rapid_feed)
-            vfactor = (25.4/60.0)/self.feed_factor()
+            vfactor = (25.4/60.0)*self.units.velocity_scale()
             low_limit = 1.0*vfactor
             if value != 0 and value < low_limit:
                 self.reporter.status(
@@ -742,7 +742,7 @@ class Laser_Service():
     def Entry_Trace_Speed_Check(self):
         try:
             value = float(self.trace_speed)
-            vfactor = (25.4/60.0)/self.feed_factor()
+            vfactor = (25.4/60.0)*self.units.velocity_scale()
             low_limit = self.min_vector_speed*vfactor
             if value < low_limit:
                 self.reporter.status(
@@ -1192,7 +1192,7 @@ class Laser_Service():
         self.stop[0] = False
         Rapid_data = []
         Rapid_inst = egv(target=lambda s: Rapid_data.append(s))
-        Rapid_feed = float(self.rapid_feed)*self.feed_factor()
+        Rapid_feed = float(self.rapid_feed)/self.units.velocity_scale()
         Rapid_inst.make_egv_rapid(
             dxmils, dymils, Feed=Rapid_feed, board_name=self.board_name)
         self.send_egv_data(Rapid_data, 1, None)
@@ -1363,44 +1363,15 @@ class Laser_Service():
         Veng_coords = self.VengData.ecoords
         Gcode_coords = self.GcodeData.ecoords
         if self.mirror or self.rotate:
-            Vcut_coords = self.mirror_rotate_vector_coords(Vcut_coords)
-            Veng_coords = self.mirror_rotate_vector_coords(Veng_coords)
-            Gcode_coords = self.mirror_rotate_vector_coords(Gcode_coords)
+            Vcut_coords = mirror_rotate_vector_coords(Vcut_coords, self.design_bounds, self.design_transform)
+            Veng_coords = mirror_rotate_vector_coords(Veng_coords, self.design_bounds, self.design_transform)
+            Gcode_coords = mirror_rotate_vector_coords(Gcode_coords, self.design_bounds, self.design_transform)
         
         if self.RengData.ecoords == []:
             self.make_raster_coords()
         return make_trace_path(bounds, self.laser_scale, self.RengData, Vcut_coords, Veng_coords, Gcode_coords, self.trace_gap, self.isRotary)
 
     ################################################################################
-
-    def mirror_rotate_vector_coords(self, coords):
-        xmin = self.design_bounds.xmin
-        xmax = self.design_bounds.xmax
-        coords_rotate_mirror = []
-
-        for i in range(len(coords)):
-            coords_rotate_mirror.append(coords[i][:])
-            if self.mirror:
-                if self.inputCSYS and self.RengData.image == None:
-                    coords_rotate_mirror[i][0] = -coords_rotate_mirror[i][0]
-                else:
-                    coords_rotate_mirror[i][0] = xmin + \
-                        xmax-coords_rotate_mirror[i][0]
-
-            if self.rotate:
-                x = coords_rotate_mirror[i][0]
-                y = coords_rotate_mirror[i][1]
-                coords_rotate_mirror[i][0] = -y
-                coords_rotate_mirror[i][1] = x
-
-        return coords_rotate_mirror
-
-    def feed_factor(self):
-        if self.units == 'in':
-            feed_factor = 25.4/60.0
-        else:
-            feed_factor = 1.0
-        return feed_factor
 
     def send_data(self, operation_type=None, output_filename=None):
         num_passes = 0
@@ -1409,10 +1380,7 @@ class Laser_Service():
             return
         try:
             feed_factor = self.units.velocity_scale()
-            if self.inputCSYS and self.RengData.image == None:
-                xmin, xmax, ymin, ymax = 0.0, 0.0, 0.0, 0.0
-            else:
-                xmin, xmax, ymin, ymax = self.Get_Design_Bounds().bounds
+            xmin, xmax, ymin, ymax = self.Get_Design_Bounds().bounds
 
             startx = xmin
             starty = ymax
@@ -1447,8 +1415,7 @@ class Laser_Service():
                 #self.master.update()
 
                 Vcut_coords = self.VcutData.ecoords
-                if self.mirror or self.rotate:
-                    Vcut_coords = self.mirror_rotate_vector_coords(Vcut_coords)
+                Vcut_coords = mirror_rotate_vector_coords(Vcut_coords, self.design_bounds, self.design_transform)
 
                 Vcut_coords, startx, starty = scale_vector_coords(
                     Vcut_coords, startx, starty, self.laser_scale, self.isRotary)
@@ -1480,8 +1447,7 @@ class Laser_Service():
                 #self.master.update()
 
                 Veng_coords = self.VengData.ecoords
-                if self.mirror or self.rotate:
-                    Veng_coords = self.mirror_rotate_vector_coords(Veng_coords)
+                Veng_coords = mirror_rotate_vector_coords(Veng_coords, self.design_bounds, self.design_transform)
 
                 Veng_coords, startx, starty = self.scale_vector_coords(
                     Veng_coords, startx, starty, self.laser_scale, self.isRotary)
@@ -1558,9 +1524,7 @@ class Laser_Service():
                 self.reporter.status("Generating EGV data...")
                 #self.master.update()
                 Gcode_coords = self.GcodeData.ecoords
-                if self.mirror or self.rotate:
-                    Gcode_coords = self.mirror_rotate_vector_coords(
-                        Gcode_coords)
+                Gcode_coords = mirror_rotate_vector_coords(Gcode_coords, self.design_bounds, self.design_transform)
 
                 Gcode_coords, startx, starty = scale_vector_coords(
                     Gcode_coords, startx, starty, self.laser_scale, self.isRotary)
@@ -1972,8 +1936,7 @@ class Laser_Service():
         if self.include_Veng:
 
             plot_coords = self.VengData.ecoords
-            if self.mirror or self.rotate:
-                plot_coords = self.mirror_rotate_vector_coords(plot_coords)
+            plot_coords = mirror_rotate_vector_coords(plot_coords, self.design_bounds, self.design_transform)
 
             lines = ecoords2lines(self.VengData.ecoords,
                                     Scale(1, 1),
@@ -1988,8 +1951,7 @@ class Laser_Service():
         if self.include_Vcut:
 
             plot_coords = self.VcutData.ecoords
-            if self.mirror or self.rotate:
-                plot_coords = self.mirror_rotate_vector_coords(plot_coords)
+            plot_coords = mirror_rotate_vector_coords(plot_coords, self.design_bounds, self.design_transform)
 
             lines = ecoords2lines(self.VcutData.ecoords,
                                     Scale(1, 1),
@@ -2004,8 +1966,7 @@ class Laser_Service():
         if self.include_Gcde:
 
             plot_coords = self.GcodeData.ecoords
-            if self.mirror or self.rotate:
-                plot_coords = self.mirror_rotate_vector_coords(plot_coords)
+            plot_coords = mirror_rotate_vector_coords(plot_coords, self.design_bounds, self.design_transform)
 
             lines = ecoords2lines(self.RengData.ecoords,
                                     Scale(1, 1),
