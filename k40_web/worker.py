@@ -27,15 +27,32 @@ def work(taskQueue, statusQueue):
         send_msg(json.dumps(data))
 
     class JSON_Reporter(Reporter):
-        data = lambda x, y: encode_msg(x, value=y, msg_type=-1)
-        clear = lambda: encode_msg("", msg_type=0)
-        status = lambda x: encode_msg(x, msg_type=1)
-        information = lambda x: encode_msg(x, msg_type=2)
-        warning = lambda x: encode_msg(x, msg_type=3)
-        error = lambda x: encode_msg(x, msg_type=4)
-        fieldClear = lambda x: encode_msg(x, msg_type=5)
-        fieldWarning = lambda x: encode_msg(x, msg_type=6)
-        fieldError = lambda x: encode_msg(x, msg_type=7)
+        def data(x, y):
+            encode_msg(x, value=y, msg_type=-1)
+
+        def clear():
+            encode_msg("", msg_type=0)
+
+        def status(x):
+            encode_msg(x, msg_type=1)
+
+        def information(x):
+            encode_msg(x, msg_type=2)
+
+        def warning(x):
+            encode_msg(x, msg_type=3)
+
+        def error(x):
+            encode_msg(x, msg_type=4)
+
+        def fieldClear(x):
+            encode_msg(x, msg_type=5)
+
+        def fieldWarning(x):
+            encode_msg(x, msg_type=6)
+
+        def fieldError(x):
+            encode_msg(x, msg_type=7)
 
     service = Laser_Service.instance(JSON_Reporter)
 
@@ -79,7 +96,7 @@ def work(taskQueue, statusQueue):
 
     '''
     var_names_strings = ["include_Reng", "include_Veng", "include_Vcut", "include_Gcde",
-                "include_Time", "halftone", "negate", "HomeUR", "inputCSYS", "advanced",
+                "include_Time", "include_Trace", "halftone", "negate", "HomeUR", "inputCSYS",
                 "mirror", "rotate", "engraveUP", "init_home", "post_home", "post_beep",
                 "post_disp", "post_exec", "pre_pr_crc", "inside_first", "comb_engrave",
                 "comb_vector", "zoom2image", "rotary", "trace_w_laser", "board_name",
@@ -88,7 +105,9 @@ def work(taskQueue, statusQueue):
                 "ht_size", "LaserXsize", "LaserYsize", "LaserXscale", "LaserYscale",
                 "LaserRscale", "rapid_feed", "gotoX", "gotoY", "bezier_M1", "bezier_M2",
                 "bezier_weight", "trace_gap", "trace_speed", "t_timeout", "n_timeouts",
-                "ink_timeout"'''
+                "ink_timeout"
+                
+    '''
 
     while True:
         try:
@@ -104,22 +123,28 @@ def work(taskQueue, statusQueue):
                 print("Error: message is None.")
                 return
             cmd = message["command"]
-            value = message["value"]
 
             print(cmd)
             if cmd in commands:
                 commands[cmd]()
             elif cmd in commands_with_values:
+                value = message["value"]
                 print(value)
                 if type(value) is list:
                     commands_with_values[cmd](*value)
                 else:
                     commands_with_values[cmd](value)
-
+            elif cmd == "get":
+                param_name = message["key"]
+                JSON_Reporter.data(param_name, getattr(service, param_name))
+            elif cmd == "set":
+                param_name = message["key"]
+                param_value = message["value"]
+                setattr(service, param_name, param_value)
+                JSON_Reporter.data(param_name, getattr(service, param_name))
             else:
                 print("sorry i did not understand ", body)
 
             print(" [x] Done")
-
         except Empty as e:
             pass
