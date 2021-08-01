@@ -28,7 +28,6 @@ import sys
 import os
 from k40_web.laser_controller.egv import egv
 import xmlrpc.client
-from k40_web.laser_controller.windowsinhibitor import WindowsInhibitor
 from time import time
 
 
@@ -52,8 +51,7 @@ def OneWireCRC(line):
 
 
 class K40_CLASS:
-    def __init__(self, inhibit=True):
-        self.inhibit = inhibit
+    def __init__(self):
         self.dev = None
         self.n_timeouts = 10
         self.timeout = 200   # Time in milliseconds
@@ -167,10 +165,6 @@ class K40_CLASS:
         if reporter == None:
             reporter = self.none_function
 
-        if self.inhibit:
-            NoSleep = WindowsInhibitor()
-            NoSleep.inhibit()
-
         blank = [166, 0, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70,
                  70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 166, 0]
         packets = []
@@ -209,8 +203,6 @@ class K40_CLASS:
                     cnt = 2
 
                     if stop_calc[0] == True:
-                        if self.inhibit:
-                            NoSleep.uninhibit()
                         self.stop_sending_data()
                         #raise Exception("Action Stopped by User.")
                 packet[cnt] = data[i]
@@ -231,9 +223,6 @@ class K40_CLASS:
         ##############################################################
         if wait_for_laser:
             self.wait_for_laser_to_finish(reporter, stop_calc)
-
-        if self.inhibit:
-            NoSleep.uninhibit()
 
     def send_packet_w_error_checking(self, line, reporter=None, stop_calc=None):
         timeout_cnt = 1
