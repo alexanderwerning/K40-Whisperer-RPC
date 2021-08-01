@@ -21,7 +21,7 @@ from PIL import ImageOps
 import PIL
 from time import time
 import os
-from k40_web.laser_controller.utils import *
+from k40_web.laser_controller.utils import format_time, get_raster_step_1000in, generate_bezier, ecoords2lines, make_raster_coords, scale_vector_coords, make_trace_path, optimize_paths
 from k40_web.laser_controller.nano_library import K40_CLASS
 from k40_web.laser_controller.egv import egv
 from k40_web.laser_controller.ecoords import ECoord
@@ -33,12 +33,12 @@ import sys
 
 from pathlib import Path
 from k40_web.laser_controller.filereader import Open_SVG, Open_DXF, Open_G_Code
+from k40_web.laser_controller.util_classes import Position, Dimensions, DesignBounds, Scale, DesignTransform, DisplayUnits, BezierSettings, SVG_Settings
 
 version = '0.52'
 title_text = "K40 Whisperer V"+version
 
 MAXINT = sys.maxsize
-
 
 try:
     os.chdir(os.path.dirname(__file__))
@@ -48,66 +48,7 @@ except:
 config_path = "./config_init.json"
 
 ################################################################################
-class Vector():
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-    
-    def aslist(self):
-        return [self.x, self.y]
 
-Position = Vector
-Dimensions = Vector
-
-class Scale():
-    def __init__(self, x, y, r=0):
-        self.x = x
-        self.y = y
-        self.r = r
-    
-    def aslist(self):
-        return [self.x, self.y, self.r]
-
-class DesignTransform():
-    def __init__(self, rotate, mirror, negate, halftone, ht_size):
-        self.rotate = rotate
-        self.mirror = mirror
-        self.negate = negate
-        self.halftone = halftone
-        self.ht_size = ht_size
-
-class BezierSettings():
-    def __init__(self, bezier_weight, bezier_M1, bezier_M2):
-        self.bezier_weight = bezier_weight
-        self.bezier_M1 = bezier_M1
-        self.bezier_M2 = bezier_M2
-
-# we work with mm and mm/s internally, but allow for display in inch and in/min
-class DisplayUnits():
-    def __init__(self, isMetric=True):
-        self.isMetric = (isMetric == "mm" or (type(isMetric) == bool and isMetric == True))
-
-    def length_unit(self):
-        return "mm" if self.isMetric else "in"
-    
-    def length_scale(self):
-        return 1 if self.isMetric else 25.4
-    
-    def velocity_unit(self):
-        return "mm/s" if self.isMetric else "in/min"
-    
-    def velocity_scale(self):
-        return 1 if self.isMetric else 60.0/25.4
-    
-    def time_scale(self):
-        return 1 if self.isMetric else 60 # min vs s
-
-class SVG_Settings():
-    def __init__(self, inkscape_path, ink_timeout, default_pxpi, default_viewbox):
-        self.inkscape_path = inkscape_path
-        self.ink_timeout = ink_timeout
-        self.default_pxpi = default_pxpi
-        self.default_viewbox = default_viewbox
 
 class Laser_Service():
     _instance = None
@@ -119,10 +60,6 @@ class Laser_Service():
         if cls._instance is None:
             cls._instance = cls.__new__(cls)
             self = cls._instance
-            self.w = 780
-            self.h = 490
-            self.x = -1
-            self.y = -1
             self.init_vars()
             self.reporter = reporter
             self.reporter.status("Welcome to K40 Whisperer")
@@ -134,14 +71,14 @@ class Laser_Service():
         self.VcutData = ECoord()
         self.GcodeData = ECoord()
         self.SCALE = 1
-        self.Design_bounds = (0, 0, 0, 0)
+        self.design_bounds = DesignBounds(0, 0, 0, 0)
         self.UI_image = None
         # if self.HomeUR:
         self.move_head_window_temporary(Position(0.0, 0.0))
         # else:
         #    self.move_head_window_temporary(0.0,0.0)
 
-        self.pos_offset = Vector(0.0, 0.0)
+        self.pos_offset = Position(0.0, 0.0)
     
     def loadConfig(self):
         with open(Path(config_path), "r") as f:
@@ -188,11 +125,10 @@ class Laser_Service():
         self.VcutData = ECoord()
         self.GcodeData = ECoord()
         self.SCALE = 1
-        self.Design_bounds = (0, 0, 0, 0)
+        self.design_bounds = DesignBounds(0, 0, 0, 0)
         self.UI_image = None
         self.pos_offset = Position(0,0)
         self.inkscape_warning = False
-        
 
         self.units = DisplayUnits(self.unit_name)
 
@@ -272,7 +208,7 @@ class Laser_Service():
         if (self.inputCSYS and self.RengData.image == None) or no_size:
             xmin, xmax, ymin, ymax = 0.0, 0.0, 0.0, 0.0
         else:
-            xmin, xmax, ymin, ymax = self.Get_Design_Bounds()
+            xmin, xmax, ymin, ymax = self.Get_Design_Bounds().bounds
 
         X = self.laser_pos.x + dx_mm
         Y = self.laser_pos.y + dy_mm
@@ -870,7 +806,7 @@ class Laser_Service():
                 (self.VcutData,
                 self.VengData,
                 self.RengData,
-                self.Design_bounds) = result
+                self.design_bounds) = result
         elif TYPE == '.SVG':
             self.resetPath()
             result = Open_SVG(filepath,
@@ -881,7 +817,7 @@ class Laser_Service():
                 (self.VcutData,
                 self.VengData,
                 self.RengData,
-                self.Design_bounds) = result
+                self.design_bounds) = result
         elif TYPE == '.EGV':
             self.EGV_Send_Window(filepath)
         else:
@@ -890,7 +826,7 @@ class Laser_Service():
                                 self.reporter)
             if result is not None:
                 (self.GcodeData,
-                self.Design_bounds) = result
+                self.design_bounds) = result
 
         self.DESIGN_FILE = filepath
         
@@ -1056,14 +992,14 @@ class Laser_Service():
 
     def Get_Design_Bounds(self):
         if self.rotate:
-            ymin = self.Design_bounds[0]
-            ymax = self.Design_bounds[1]
-            xmin = -self.Design_bounds[3]
-            xmax = -self.Design_bounds[2]
+            ymin = self.design_bounds.xmin
+            ymax = self.design_bounds.xmax
+            xmin = -self.design_bounds.ymax
+            xmax = -self.design_bounds.ymin
         else:
-            xmin, xmax, ymin, ymax = self.Design_bounds
-        return (xmin, xmax, ymin, ymax)
-    
+            xmin, xmax, ymin, ymax = self.design_bounds
+        return DesignBounds(xmin, xmax, ymin, ymax)
+
     def move_head_window_temporary(self, offset):
         if self.GUI_Disabled:
             return
@@ -1093,7 +1029,7 @@ class Laser_Service():
 
 
     def Move_in_design_space(self, relative_x_offset, relative_y_offset):
-        xmin, xmax, ymin, ymax = self.Get_Design_Bounds()
+        xmin, xmax, ymin, ymax = self.Get_Design_Bounds().bounds
 
         if self.HomeUR:
             relative_x_offset = 1-relative_x_offset
@@ -1442,8 +1378,8 @@ class Laser_Service():
     ################################################################################
 
     def mirror_rotate_vector_coords(self, coords):
-        xmin = self.Design_bounds[0]
-        xmax = self.Design_bounds[1]
+        xmin = self.design_bounds.xmin
+        xmax = self.design_bounds.xmax
         coords_rotate_mirror = []
 
         for i in range(len(coords)):
@@ -1480,7 +1416,7 @@ class Laser_Service():
             if self.inputCSYS and self.RengData.image == None:
                 xmin, xmax, ymin, ymax = 0.0, 0.0, 0.0, 0.0
             else:
-                xmin, xmax, ymin, ymax = self.Get_Design_Bounds()
+                xmin, xmax, ymin, ymax = self.Get_Design_Bounds().bounds
 
             startx = xmin
             starty = ymax
@@ -1508,7 +1444,7 @@ class Laser_Service():
                 self.reporter.status("Vector Cut: Determining Cut Order....")
                 #self.master.update()
                 if not self.VcutData.sorted and self.inside_first:
-                    self.VcutData.set_ecoords(self.optimize_paths(
+                    self.VcutData.set_ecoords(optimize_paths(
                         self.VcutData.ecoords), data_sorted=True)
 
                 self.reporter.status("Generating EGV data...")
@@ -1542,7 +1478,7 @@ class Laser_Service():
                     "Vector Engrave: Determining Cut Order....")
                 ##self.master.update()
                 if not self.VengData.sorted and self.inside_first:
-                    self.VengData.set_ecoords(self.optimize_paths(
+                    self.VengData.set_ecoords(optimize_paths(
                         self.VengData.ecoords, inside_check=False), data_sorted=True)
                 self.reporter.status("Generating EGV data...")
                 #self.master.update()
@@ -1883,7 +1819,7 @@ class Laser_Service():
         # dummy_event.widget = self.master
         # self.Master_Configure(dummy_event, 1)
         # self.Plot_Data()
-        # xmin, xmax, ymin, ymax = self.Get_Design_Bounds()
+        # xmin, xmax, ymin, ymax = self.Get_Design_Bounds().bounds
         # W = xmax-xmin
         # H = ymax-ymin
 
@@ -1971,7 +1907,7 @@ class Laser_Service():
         if self.inputCSYS and self.RengData.image == None:
             xmin, xmax, ymin, ymax = 0.0, 0.0, 0.0, 0.0
         else:
-            xmin, xmax, ymin, ymax = self.Get_Design_Bounds()
+            xmin, xmax, ymin, ymax = self.Get_Design_Bounds().bounds
 
         ######################################
         ###       Plot Raster Image        ###
