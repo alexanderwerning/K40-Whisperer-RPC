@@ -185,7 +185,6 @@ def ecoords2lines(ecoords, scale, shift):
 
 
 from k40_web.laser_controller.interpolate import interpolate
-from k40_web.laser_controller.utils import generate_bezier
 
 '''This Example opens an Image and transform the image into halftone.  -Isai B. Cicourel'''
 # Create a Half-tone version of the image
