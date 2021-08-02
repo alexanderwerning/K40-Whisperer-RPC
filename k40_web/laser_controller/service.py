@@ -33,7 +33,7 @@ import sys
 
 from pathlib import Path
 from k40_web.laser_controller.filereader import Open_SVG, Open_DXF, Open_G_Code
-from k40_web.laser_controller.util_classes import Position, Dimensions, DesignBounds, Scale, DesignTransform, DisplayUnits, BezierSettings, SVG_Settings
+from k40_web.laser_controller.util_classes import Position, Dimensions, DesignBounds, Scale, DesignTransform, DisplayUnits, BezierSettings, SVG_Settings, Design
 
 version = '0.52'
 title_text = "K40 Whisperer V"+version
@@ -66,13 +66,9 @@ class Laser_Service():
         return cls._instance
 
     def resetPath(self):
-        self.RengData = ECoord()
-        self.VengData = ECoord()
-        self.VcutData = ECoord()
-        self.GcodeData = ECoord()
+        self.design.reset()
         self.SCALE = 1
-        self.design_bounds = DesignBounds(0, 0, 0, 0)
-        self.UI_image = None
+        self.design.bounds = DesignBounds(0, 0, 0, 0)
         # if self.HomeUR:
         self.move_head_window_temporary(Position(0.0, 0.0))
         # else:
@@ -108,11 +104,6 @@ class Laser_Service():
         self.laser_bed_size = Dimensions(self.laser_bed_size_[0], self.laser_bed_size_[1])
         self.laser_scale = Scale(self.laser_scale_[0], self.laser_scale_[1], self.LaserRscale)
 
-        self.design_transform = DesignTransform(self.rotate,
-                                                self.mirror,
-                                                self.negate,
-                                                self.halftone,
-                                                self.ht_size)
 
         self.bezier_settings = BezierSettings(self.bezier_weight, self.bezier_M1, self.bezier_M2)
         self.svg_settings = SVG_Settings(inkscape_path="", ink_timeout=self.ink_timeout, default_pxpi=96.0, default_viewbox=(0,0,500,500))
@@ -120,14 +111,17 @@ class Laser_Service():
         self.PlotScale = 1.0
         self.GUI_Disabled = False
 
-        self.RengData = ECoord()
-        self.VengData = ECoord()
-        self.VcutData = ECoord()
-        self.GcodeData = ECoord()
+
         self.SCALE = 1
-        self.design_bounds = DesignBounds(0, 0, 0, 0)
-        self.UI_image = None
+        self.design_transform = DesignTransform(self.design_scale,
+                                            self.rotate,
+                                            self.mirror,
+                                            self.negate,
+                                            self.halftone,
+                                            self.ht_size)
+        self.design = Design()
         self.pos_offset = Position(0,0)
+
         self.inkscape_warning = False
 
         self.units = DisplayUnits(self.unit_name)
@@ -205,7 +199,7 @@ class Laser_Service():
         MAXX = float(self.laser_bed_size.x)
         MINY = -float(self.laser_bed_size.y)
 
-        if (self.inputCSYS and self.RengData.image == None) or no_size:
+        if (self.inputCSYS and self.design.RengData.image == None) or no_size:
             xmin, xmax, ymin, ymax = 0.0, 0.0, 0.0, 0.0
         else:
             xmin, xmax, ymin, ymax = self.Get_Design_Bounds().bounds
@@ -260,14 +254,14 @@ class Laser_Service():
 
         rapid_feed = 100.0 / 25.4   # 100 mm/s move feed to be confirmed
 
-        if self.RengData.rpaths:
+        if self.design.RengData.rpaths:
             Reng_time = 0
         else:
             Reng_time = None
         Veng_time = 0
         Vcut_time = 0
 
-        if self.RengData.len != None:
+        if self.design.RengData.len != None:
             # these equations are a terrible hack based on measured raster engraving times
             # to be fixed someday
             if Raster_eng_feed*60.0 <= 300:
@@ -275,17 +269,17 @@ class Laser_Service():
             else:
                 accel_time = 2.5913*(Raster_eng_feed*60.0)**(-0.4795)
 
-            t_accel = self.RengData.n_scanlines * accel_time
-            Reng_time = ((self.RengData.len)/Raster_eng_feed) * \
+            t_accel = self.design.RengData.n_scanlines * accel_time
+            Reng_time = ((self.design.RengData.len)/Raster_eng_feed) * \
                 Raster_eng_passes + t_accel
-        if self.VengData.len != None:
-            Veng_time = (self.VengData.len / Vector_eng_feed +
-                         self.VengData.move / rapid_feed) * Vector_eng_passes
-        if self.VcutData.len != None:
-            Vcut_time = (self.VcutData.len / Vector_cut_feed +
-                         self.VcutData.move / rapid_feed) * Vector_cut_passes
+        if self.design.VengData.len != None:
+            Veng_time = (self.design.VengData.len / Vector_eng_feed +
+                         self.design.VengData.move / rapid_feed) * Vector_eng_passes
+        if self.design.VcutData.len != None:
+            Vcut_time = (self.design.VcutData.len / Vector_cut_feed +
+                         self.design.VcutData.move / rapid_feed) * Vector_cut_passes
 
-        Gcode_time = self.GcodeData.gcode_time * Gcode_passes
+        Gcode_time = self.design.GcodeData.gcode_time * Gcode_passes
 
         self.Reng_time.set("Raster Engrave: %s" %
                            (format_time(Reng_time)))
@@ -311,7 +305,7 @@ class Laser_Service():
         self.PreviewCanvas.delete("HUD")
         self.calc_button.place_forget()
 
-        if self.GcodeData.ecoords == []:
+        if self.design.GcodeData.ecoords == []:
             self.PreviewCanvas.create_text(
                 HUD_X, HUD_Y, fill="red", text=self.Vcut_time, anchor="se", tags="HUD")
             self.PreviewCanvas.create_text(
@@ -442,7 +436,7 @@ class Laser_Service():
         return 0         # Value is a valid number
 
     def Entry_Rstep_Callback(self, varName, index, mode):
-        self.RengData.reset_path()
+        self.design.RengData.reset_path()
         self.entry_set("Rstep", self.Entry_Rstep_Check(), new=1)
 
 ##    ###########################
@@ -757,23 +751,21 @@ class Laser_Service():
         TYPE = fileExtension.upper()
         if TYPE == '.DXF':
             self.resetPath()
-            result = Open_DXF(filepath, self.design_scale, self.reporter)
+            result = Open_DXF(filepath, self.design_transform.scale, self.reporter)
             if result is not None:
-                (self.VcutData,
-                self.VengData,
-                self.RengData,
-                self.design_bounds) = result
+                self.design = result
+            else:
+                self.design.reset()
         elif TYPE == '.SVG':
             self.resetPath()
             result = Open_SVG(filepath,
-                            self.design_scale,
+                            self.design_transform.scale,
                             self.svg_settings,
                             self.reporter)
             if result is not None:
-                (self.VcutData,
-                self.VengData,
-                self.RengData,
-                self.design_bounds) = result
+                self.design = result
+            else:
+                self.design.reset()
         elif TYPE == '.EGV':
             self.EGV_Send_Window(filepath)
         else:
@@ -781,8 +773,9 @@ class Laser_Service():
             result = Open_G_Code(filepath,
                                 self.reporter)
             if result is not None:
-                (self.GcodeData,
-                self.design_bounds) = result
+                self.design = result
+            else:
+                self.design.reset()
 
         self.DESIGN_FILE = filepath
         
@@ -942,15 +935,15 @@ class Laser_Service():
 
     #####################################################################
     def make_raster_coords(self):
-        make_raster_coords(self.RengData, self.laser_scale, self.design_transform, self.isRotary, self.bezier_settings, self.reporter, self.rast_step)
+        make_raster_coords(self.design.RengData, self.laser_scale, self.design_transform, self.isRotary, self.bezier_settings, self.reporter, self.rast_step)
 
     ##########################################################################
 
     def Get_Design_Bounds(self):
         if self.rotate:
-            return self.design_bounds.rotate()
+            return self.design.bounds.rotate()
         else:
-            return self.design_bounds
+            return self.design.bounds
 
     def move_head_window_temporary(self, offset):
         if self.GUI_Disabled:
@@ -963,7 +956,7 @@ class Laser_Service():
         pos_offset_Y = round((Ynew-self.laser_pos.y), 3)
         new_pos_offset = Position(pos_offset_X, pos_offset_Y)
 
-        if self.inputCSYS and self.RengData.image == None:
+        if self.inputCSYS and self.design.RengData.image == None:
             new_pos_offset = Position(0, 0)
             xdist = -self.pos_offset.x
             ydist = -self.pos_offset.y
@@ -1155,7 +1148,7 @@ class Laser_Service():
 
     def Vector_Cut(self, output_filename=None):
         self.Prepare_for_laser_run("Vector Cut: Processing Vector Data.")
-        if self.VcutData.ecoords != []:
+        if self.design.VcutData.ecoords != []:
             self.send_data("Vector_Cut", output_filename)
         else:
             self.reporter.warning("No vector data to cut")
@@ -1163,7 +1156,7 @@ class Laser_Service():
 
     def Vector_Eng(self, output_filename=None):
         self.Prepare_for_laser_run("Vector Engrave: Processing Vector Data.")
-        if self.VengData.ecoords != []:
+        if self.design.VengData.ecoords != []:
             self.send_data("Vector_Eng", output_filename)
         else:
             self.reporter.warning("No vector data to engrave")
@@ -1184,7 +1177,7 @@ class Laser_Service():
         self.Prepare_for_laser_run("Raster Engraving: Processing Image Data.")
         try:
             self.make_raster_coords()
-            if self.RengData.ecoords != []:
+            if self.design.RengData.ecoords != []:
                 self.send_data("Raster_Eng", output_filename)
             else:
                 self.reporter.warning("No raster data to engrave")
@@ -1205,7 +1198,7 @@ class Laser_Service():
             "Raster Engraving: Processing Image and Vector Data.")
         try:
             self.make_raster_coords()
-            if self.RengData.ecoords != [] or self.VengData.ecoords != []:
+            if self.design.RengData.ecoords != [] or self.design.VengData.ecoords != []:
                 self.send_data("Raster_Eng+Vector_Eng", output_filename)
             else:
                 self.reporter.warning("No data to engrave")
@@ -1217,7 +1210,7 @@ class Laser_Service():
 
     def Vector_Eng_Cut(self, output_filename=None):
         self.Prepare_for_laser_run("Vector Cut: Processing Vector Data.")
-        if self.VcutData.ecoords != [] or self.VengData.ecoords != []:
+        if self.design.VcutData.ecoords != [] or self.design.VengData.ecoords != []:
             self.send_data("Vector_Eng+Vector_Cut", output_filename)
         else:
             self.reporter.warning("No vector data.")
@@ -1228,7 +1221,7 @@ class Laser_Service():
             "Raster Engraving: Processing Image and Vector Data.")
         try:
             self.make_raster_coords()
-            if self.RengData.ecoords != [] or self.VengData.ecoords != [] or self.VcutData.ecoords != []:
+            if self.design.RengData.ecoords != [] or self.design.VengData.ecoords != [] or self.design.VcutData.ecoords != []:
                 self.send_data(
                     "Raster_Eng+Vector_Eng+Vector_Cut", output_filename)
             else:
@@ -1241,7 +1234,7 @@ class Laser_Service():
 
     def Gcode_Cut(self, output_filename=None):
         self.Prepare_for_laser_run("G Code Cutting.")
-        if self.GcodeData.ecoords != []:
+        if self.design.GcodeData.ecoords != []:
             self.send_data("Gcode_Cut", output_filename)
         else:
             self.reporter.warning("No g-code data to cut")
@@ -1280,22 +1273,18 @@ class Laser_Service():
             self.reporter.status(msg)
 
     def make_trace_path(self):
-        if self.inputCSYS and self.RengData.image == None:
+        if self.inputCSYS and self.design.RengData.image == None:
             bounds = 0.0, 0.0, 0.0, 0.0
         else:
             bounds = self.Get_Design_Bounds()
         
-        Vcut_coords = self.VcutData.ecoords
-        Veng_coords = self.VengData.ecoords
-        Gcode_coords = self.GcodeData.ecoords
-        if self.mirror or self.rotate:
-            Vcut_coords = mirror_rotate_vector_coords(Vcut_coords, self.design_bounds, self.design_transform)
-            Veng_coords = mirror_rotate_vector_coords(Veng_coords, self.design_bounds, self.design_transform)
-            Gcode_coords = mirror_rotate_vector_coords(Gcode_coords, self.design_bounds, self.design_transform)
+        Vcut_coords = mirror_rotate_vector_coords(self.design.VcutData.ecoords, self.design.bounds, self.design_transform)
+        Veng_coords = mirror_rotate_vector_coords(self.design.VengData.ecoords, self.design.bounds, self.design_transform)
+        Gcode_coords = mirror_rotate_vector_coords(self.design.GcodeData.ecoords, self.design.bounds, self.design_transform)
         
-        if self.RengData.ecoords == []:
+        if self.design.RengData.ecoords == []:
             self.make_raster_coords()
-        return make_trace_path(bounds, self.laser_scale, self.RengData, Vcut_coords, Veng_coords, Gcode_coords, self.trace_gap, self.isRotary)
+        return make_trace_path(bounds, self.laser_scale, self.design.RengData, Vcut_coords, Veng_coords, Gcode_coords, self.trace_gap, self.isRotary)
 
     ################################################################################
 
@@ -1329,19 +1318,19 @@ class Laser_Service():
             Vector_Cut_data = []
             G_code_Cut_data = []
 
-            if (operation_type.find("Vector_Cut") > -1) and (self.VcutData.ecoords != []):
+            if (operation_type.find("Vector_Cut") > -1) and (self.design.VcutData.ecoords != []):
                 Feed_Rate = float(self.Vcut_feed)*feed_factor
                 self.reporter.status("Vector Cut: Determining Cut Order....")
                 #self.master.update()
-                if not self.VcutData.sorted and self.inside_first:
-                    self.VcutData.set_ecoords(optimize_paths(
-                        self.VcutData.ecoords), data_sorted=True)
+                if not self.design.VcutData.sorted and self.inside_first:
+                    self.design.VcutData.set_ecoords(optimize_paths(
+                        self.design.VcutData.ecoords), data_sorted=True)
 
                 self.reporter.status("Generating EGV data...")
                 #self.master.update()
 
-                Vcut_coords = self.VcutData.ecoords
-                Vcut_coords = mirror_rotate_vector_coords(Vcut_coords, self.design_bounds, self.design_transform)
+                Vcut_coords = self.design.VcutData.ecoords
+                Vcut_coords = mirror_rotate_vector_coords(Vcut_coords, self.design.bounds, self.design_transform)
 
                 Vcut_coords, startx, starty = scale_vector_coords(
                     Vcut_coords, startx, starty, self.laser_scale, self.isRotary)
@@ -1361,19 +1350,19 @@ class Laser_Service():
                     use_laser=True
                 )
 
-            if (operation_type.find("Vector_Eng") > -1) and (self.VengData.ecoords != []):
+            if (operation_type.find("Vector_Eng") > -1) and (self.design.VengData.ecoords != []):
                 Feed_Rate = float(self.Veng_feed)*feed_factor
                 self.reporter.status(
                     "Vector Engrave: Determining Cut Order....")
                 ##self.master.update()
-                if not self.VengData.sorted and self.inside_first:
-                    self.VengData.set_ecoords(optimize_paths(
-                        self.VengData.ecoords, inside_check=False), data_sorted=True)
+                if not self.design.VengData.sorted and self.inside_first:
+                    self.design.VengData.set_ecoords(optimize_paths(
+                        self.design.VengData.ecoords, inside_check=False), data_sorted=True)
                 self.reporter.status("Generating EGV data...")
                 #self.master.update()
 
-                Veng_coords = self.VengData.ecoords
-                Veng_coords = mirror_rotate_vector_coords(Veng_coords, self.design_bounds, self.design_transform)
+                Veng_coords = self.design.VengData.ecoords
+                Veng_coords = mirror_rotate_vector_coords(Veng_coords, self.design.bounds, self.design_transform)
 
                 Veng_coords, startx, starty = self.scale_vector_coords(
                     Veng_coords, startx, starty, self.laser_scale, self.isRotary)
@@ -1414,7 +1403,7 @@ class Laser_Service():
                     use_laser=laser_on
                 )
 
-            if (operation_type.find("Raster_Eng") > -1) and (self.RengData.ecoords != []):
+            if (operation_type.find("Raster_Eng") > -1) and (self.design.RengData.ecoords != []):
                 Feed_Rate = self.Reng_feed*feed_factor
                 Raster_step = get_raster_step_1000in(self.rast_step)
                 if not self.engraveUP:
@@ -1432,7 +1421,7 @@ class Laser_Service():
                 Raster_Eng_egv_inst = egv(
                     target=lambda s: Raster_Eng_data.append(s))
                 Raster_Eng_egv_inst.make_egv_data(
-                    self.RengData.ecoords,
+                    self.design.RengData.ecoords,
                     startX=raster_startx,
                     startY=raster_starty,
                     Feed=Feed_Rate,
@@ -1444,13 +1433,13 @@ class Laser_Service():
                     Rapid_Feed_Rate=Rapid_Feed,
                     use_laser=True
                 )
-                # self.RengData.reset_path()
+                # self.design.RengData.reset_path()
 
-            if (operation_type.find("Gcode_Cut") > -1) and (self.GcodeData.ecoords != []):
+            if (operation_type.find("Gcode_Cut") > -1) and (self.design.GcodeData.ecoords != []):
                 self.reporter.status("Generating EGV data...")
                 #self.master.update()
-                Gcode_coords = self.GcodeData.ecoords
-                Gcode_coords = mirror_rotate_vector_coords(Gcode_coords, self.design_bounds, self.design_transform)
+                Gcode_coords = self.design.GcodeData.ecoords
+                Gcode_coords = mirror_rotate_vector_coords(Gcode_coords, self.design.bounds, self.design_transform)
 
                 Gcode_coords, startx, starty = scale_vector_coords(
                     Gcode_coords, startx, starty, self.laser_scale, self.isRotary)
@@ -1676,11 +1665,11 @@ class Laser_Service():
     ##########################################################################
 
     def Reset_RasterPath_and_Update_Time(self, varName=0, index=0, mode=0):
-        self.RengData.reset_path()
+        self.design.RengData.reset_path()
         self.refreshTime()
 
     def View_Refresh_and_Reset_RasterPath(self, varName=0, index=0, mode=0):
-        self.RengData.reset_path()
+        self.design.RengData.reset_path()
         self.SCALE = 0
         self.menu_View_Refresh()
 
@@ -1701,10 +1690,10 @@ class Laser_Service():
         self.menu_Reload_Design()
 
     def menu_Inside_First_Callback(self, varName, index, mode):
-        if self.GcodeData.ecoords != []:
-            if self.VcutData.sorted == True:
+        if self.design.GcodeData.ecoords != []:
+            if self.design.VcutData.sorted == True:
                 self.menu_Reload_Design()
-            elif self.VengData.sorted == True:
+            elif self.design.VengData.sorted == True:
                 self.menu_Reload_Design()
 
     def menu_Calc_Raster_Time(self, event=None):
@@ -1722,22 +1711,7 @@ class Laser_Service():
     
 
     def Plot_Data(self):
-       
-        # # setup bounds and dimensions
-        # cszw = int(self.PreviewCanvas.cget("width"))
-        # cszh = int(self.PreviewCanvas.cget("height"))
-        # buff = 10
-        # wc = float(cszw/2)
-        # hc = float(cszh/2)
-
-        # maxx = float(self.laser_bed_size.x) / self.units_scale
-        # minx = 0.0
-        # maxy = 0.0
-        # miny = -float(self.laser_bed_size.y) / self.units_scale
-        # midx = (maxx+minx)/2
-        # midy = (maxy+miny)/2
-
-        if self.inputCSYS and self.RengData.image == None:
+        if self.inputCSYS and self.design.RengData.image == None:
             xmin, xmax, ymin, ymax = 0.0, 0.0, 0.0, 0.0
         else:
             xmin, xmax, ymin, ymax = self.Get_Design_Bounds().bounds
@@ -1745,19 +1719,19 @@ class Laser_Service():
         ######################################
         ###       Plot Raster Image        ###
         ######################################
-        if self.RengData.image != None:
+        if self.design.RengData.image != None:
             if self.include_Reng:
                 try:
-                    self.Reng_image = self.RengData.image.convert("L")
+                    self.Reng_image = self.design.RengData.image.convert("L")
                     input_dpi = 1000*self.design_scale
-                    wim, him = self.RengData.image.size
+                    wim, him = self.design.RengData.image.size
                     new_SCALE = self.SCALE #(1.0/self.PlotScale)/input_dpi #FIXME
                     if new_SCALE != self.SCALE:
                         self.SCALE = new_SCALE
                         nw = int(self.SCALE*wim)
                         nh = int(self.SCALE*him)
 
-                        plot_im = self.RengData.image.convert("L")
+                        plot_im = self.design.RengData.image.convert("L")
 
                         if self.negate:
                             plot_im = ImageOps.invert(plot_im)
@@ -1788,7 +1762,7 @@ class Laser_Service():
         ######################################
         ###       Plot Reng Coords         ###
         ######################################
-        if self.include_Rpth and self.RengData.ecoords != []:
+        if self.include_Rpth and self.design.RengData.ecoords != []:
 
             Xscale = 1/self.laser_scale.x
             Yscale = 1/self.laser_scale.y
@@ -1796,26 +1770,24 @@ class Laser_Service():
                 Rscale = 1/self.laser_scale.r
                 Yscale = Yscale*Rscale
 
-            lines = ecoords2lines(self.RengData.ecoords,
+            lines = ecoords2lines(self.design.RengData.ecoords,
                                     Scale(Xscale, Yscale),
                                     Position(0, -ymax))
             
-            self.Reng_coords = lines
+            #self.Reng_coords = lines
             self.reporter.data("Reng_coords", lines)
 
         ######################################
         ###       Plot Veng Coords         ###
         ######################################
         if self.include_Veng:
+            plot_coords = mirror_rotate_vector_coords(self.design.VengData.ecoords, self.design.bounds, self.design_transform)
 
-            plot_coords = self.VengData.ecoords
-            plot_coords = mirror_rotate_vector_coords(plot_coords, self.design_bounds, self.design_transform)
-
-            lines = ecoords2lines(self.VengData.ecoords,
+            lines = ecoords2lines(plot_coords,
                                     Scale(1, 1),
                                     Position(-xmin, -ymax))
 
-            self.Veng_coords = lines
+            #self.Veng_coords = lines
             self.reporter.data("Veng_coords", lines)
 
         ######################################
@@ -1823,49 +1795,44 @@ class Laser_Service():
         ######################################
         if self.include_Vcut:
 
-            plot_coords = self.VcutData.ecoords
-            plot_coords = mirror_rotate_vector_coords(plot_coords, self.design_bounds, self.design_transform)
+            plot_coords = mirror_rotate_vector_coords(self.design.VcutData.ecoords, self.design.bounds, self.design_transform)
 
-            lines = ecoords2lines(self.VcutData.ecoords,
+            lines = ecoords2lines(plot_coords,
                                     Scale(1, 1),
                                     Position(-xmin, -ymax))
 
-            self.Vcut_coords = lines
+            #self.Vcut_coords = lines
             self.reporter.data("Vcut_coords", lines)
 
         ######################################
         ###       Plot Gcode Coords        ###
         ######################################
         if self.include_Gcde:
+            plot_coords = mirror_rotate_vector_coords(self.design.GcodeData.ecoords, self.design.bounds, self.design_transform)
 
-            plot_coords = self.GcodeData.ecoords
-            plot_coords = mirror_rotate_vector_coords(plot_coords, self.design_bounds, self.design_transform)
-
-            lines = ecoords2lines(self.RengData.ecoords,
+            lines = ecoords2lines(plot_coords,
                                     Scale(1, 1),
                                     Position(-xmin, -ymax))
             
-            self.Gcde_coords = lines
+            #self.Gcde_coords = lines
             self.reporter.data("Gcde_coords", lines)
 
         ######################################
         ###       Plot Trace Coords        ###
         ######################################
         if self.include_Trace:
-            #####
             Xscale = 1/self.laser_scale.x
             Yscale = 1/self.laser_scale.y
             if self.isRotary:
                 Rscale = 1/self.laser_scale.r
                 Yscale = Yscale*Rscale
-            ######
-            trace_coords = self.make_trace_path()
 
+            trace_coords = self.make_trace_path()
             lines = ecoords2lines(trace_coords,
                                     Scale(Xscale, Yscale),
                                     Position(-xmin, -ymax))
             
-            self.trace_coords = lines
+            #self.trace_coords = lines
             self.reporter.data("Trace_coords", lines)
 
         ######################################

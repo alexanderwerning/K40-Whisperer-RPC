@@ -1,3 +1,6 @@
+from k40_web.laser_controller.ecoords import ECoord
+
+
 class Vector():
     def __init__(self, x, y):
         self.x = x
@@ -26,7 +29,8 @@ class Scale():
 
 
 class DesignTransform():
-    def __init__(self, rotate, mirror, negate, halftone, ht_size):
+    def __init__(self, scale=1.0, rotate=False, mirror=False, negate=False, halftone=False, ht_size=500):
+        self.scale = scale
         self.rotate = rotate
         self.mirror = mirror
         self.negate = negate
@@ -94,3 +98,19 @@ class DesignBounds():
     def from_tuple(tuple):
         assert len(tuple) == 4
         return DesignBounds(*tuple)
+
+
+class Design():
+    def __init__(self, RengData=ECoord(), VengData=ECoord(), VcutData=ECoord(), GcodeData=ECoord(), bounds=DesignBounds()):
+        self.RengData = RengData
+        self.VengData = VengData
+        self.VcutData = VcutData
+        self.GcodeData = GcodeData
+        self.bounds = bounds
+    
+    def reset(self):
+        self.RengData = ECoord()
+        self.VengData = ECoord()
+        self.VcutData = ECoord()
+        self.GcodeData = ECoord()
+        self.bounds = DesignBounds(0, 0, 0, 0)
