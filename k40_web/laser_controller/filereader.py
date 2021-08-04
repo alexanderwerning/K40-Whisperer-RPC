@@ -3,7 +3,7 @@ from k40_web.laser_controller.ecoords import ECoord
 from k40_web.laser_controller.svg_reader import SVG_PXPI_EXCEPTION, SVG_READER, SVG_TEXT_EXCEPTION
 from k40_web.laser_controller.dxf import DXF_CLASS
 from k40_web.laser_controller.g_code_library import G_Code_Rip
-from k40_web.laser_controller.util_classes import DesignBounds
+from k40_web.laser_controller.util_classes import DesignBounds, Design
 
 def Open_SVG(filename, design_scale, svg_options,  reporter):
     svg_reader = SVG_READER()
@@ -87,7 +87,7 @@ K40 Whisperer will attempt to use all of the vector data.
 Please verify that the vector data is not outside of your lasers working area before engraving."""
         reporter.warning(text)
 
-    return VcutData, VengData, RengData, design_bounds
+    return Design(VcutData=VcutData, VengData=VengData, RengData=RengData, bounds=design_bounds)
 
 
 def Open_G_Code(filename, reporter):
@@ -107,7 +107,7 @@ def Open_G_Code(filename, reporter):
     GcodeData.set_ecoords(ecoords, data_sorted=True)
     design_bounds = DesignBounds.from_tuple(GcodeData.bounds)
 
-    return GcodeData, design_bounds
+    return Design(GcodeData=GcodeData, bounds=design_bounds)
 
 
 def Open_DXF(filename, design_scale, reporter):
@@ -195,4 +195,4 @@ def Open_DXF(filename, design_scale, reporter):
     ymax = max(VcutData.bounds[3], VengData.bounds[3])
     design_bounds = DesignBounds(xmin, xmax, ymin, ymax)
 
-    return VcutData, VengData, design_bounds
+    return Design(VcutData=VcutData, VengData=VengData, bounds=design_bounds)
