@@ -49,13 +49,16 @@ def get_raster_step_1000in(rast_step):
     return value
 
 
-def generate_bezier(M1, M2, w, n=100):
-    if (M1 == M2):
+def generate_bezier(bezier_settings, n=100):
+    m1 = bezier_settings.m1
+    m2 = bezier_settings.m2
+    w = bezier_settings.weight
+    if (m1 == m2):
         x1 = 0
         y1 = 0
     else:
-        x1 = 255*(1-M2)/(M1-M2)
-        y1 = M1*x1
+        x1 = 255*(1-m2)/(m1-m2)
+        y1 = m1*x1
     x = []
     y = []
     # Calculate Bezier Curve

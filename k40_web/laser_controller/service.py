@@ -30,6 +30,7 @@ from pathlib import Path
 from math import *
 import traceback
 import sys
+from numbers import Number
 
 from pathlib import Path
 from k40_web.laser_controller.filereader import Open_SVG, Open_DXF, Open_G_Code
@@ -131,47 +132,57 @@ class Laser_Service():
 
 
 ################################################################################
+    def set_var_with_check(self, name, value):
+        print(f"set var with check {name}, {value}, {type(value)}")
+        callbacks = {"Reng_feed": self.Entry_Reng_feed_Callback,
+                    "Veng_feed": self.Entry_Veng_feed_Callback,
+                    "Vcut_feed": self.Entry_Vcut_feed_Callback,
+                    "step": self.Entry_Step_Callback,
+                    "Rstep": self.Entry_Rstep_Callback,
+                    "bezier_settings": self.Entry_bezier_settings_callback,
+                    "ink_timeout":  self.Entry_Ink_Timeout_Callback,
+                    "timeout": self.Entry_Timeout_Callback,
+                    "n_timeouts": self.Entry_N_Timeouts_Callback,
+                    "n_EGV_passes": self.Entry_N_EGV_Passes_Callback,
+                    "laser_pos": lambda x: self.mouse_click(x[0], x[1]),
+                    "laser_size": self.Entry_Laser_Area_Callback,
+                    "laser_scale": self.Entry_Laser_Scale_Callback,
+                    "rapid_feed": self.Entry_Laser_Rapid_Feed_Callback,
+                    "Reng_passes": self.Entry_Reng_passes_Callback,
+                    "Veng_passes": self.Entry_Veng_passes_Callback,
+                    "Vcut_passes": self.Entry_Vcut_passes_Callback,
+                    "Gcde_passes": self.Entry_Gcde_passes_Callback,
+                    "Trace_gap": self.Entry_Trace_Gap_Callback,
+                    "trace_speed": self.Entry_Trace_Speed_Callback,
+                    "inkscape_path": self.Entry_Inkscape_Path_Callback}
+        binary_vars = ["include_Reng", "include_Veng", "include_Vcut", "include_Gcde",
+                "include_Time", "include_Trace",
+                "halftone", "invert", "HomeUR", "inputCSYS",
+                "mirror", "rotate", "engraveUP", "init_home", "post_home", "post_beep",
+                "post_disp", "post_exec", "pre_pr_crc", "inside_first", "comb_engrave",
+                "comb_vector", "zoom2image", "rotary", "trace_w_laser"]
+        if name in callbacks:
+            callbacks[name](value)
+        elif name in binary_vars:
+            setattr(self, name, value==True)
+            self.reporter.data(name, value==True)
+        else:
+            self.reporter.error(f"Callback {name} not accessible")
 
-
-    def entry_set(self, field, calc_flag=0, new=0):
-        if calc_flag == 0 and new == 0:
-            try:
-                self.reporter.fieldWarning(field)
-                self.reporter.warning(" Recalculation required.")
-            except:
-                pass
-        elif calc_flag == 3:
-            try:
-                self.reporter.fieldError(field)
-                self.reporter.error(" Value should be a number. ")
-            except:
-                pass
+    def entry_set(self, field, calc_flag=0):
+        if calc_flag == 3:
+            self.reporter.fieldError(field)
+            self.reporter.error("Value should be a number. ")
         elif calc_flag == 2:
-            try:
-                self.reporter.fieldError(field)
-            except:
-                pass
-        elif (calc_flag == 0 or calc_flag == 1) and new == 1:
-            try:
-                self.reporter.status(" ")
-                self.reporter.fieldClear(field)
-            except:
-                pass
-        elif (calc_flag == 1) and new == 0:
-            try:
-                self.reporter.status(" ")
-                self.reporter.fieldClear(field)
-            except:
-                pass
+            self.reporter.fieldError(field)
+        elif (calc_flag == 0 or calc_flag == 1):
+            self.reporter.fieldClear(field)
 
-        elif (calc_flag == 0 or calc_flag == 1) and new == 2:
-            return 0
-        return 1
-
-    def Quit_Click(self, event):
+    def Quit_Click(self):
         self.reporter.status("Exiting!")
         self.Release_USB()
 
+    # callback laser_pos
     def mouse_click(self, x_display_unit, y_display_unit):
         x_mm = x_display_unit / self.units.length_scale()
         y_mm = y_display_unit / self.units.length_scale()
@@ -218,7 +229,7 @@ class Laser_Service():
             Y = MINY+dy
         if Y > MAXY:
             Y = MAXY
-        ################
+
         if not no_size:
             XOFF = self.pos_offset.x
             YOFF = self.pos_offset.y
@@ -230,7 +241,7 @@ class Laser_Service():
                 Y = Y + (MINY-(Y+YOFF))
             if Y+YOFF > MAXY:
                 Y = Y - ((Y+YOFF)-MAXY)
-        ################
+
         X = round(X, 3)
         Y = round(Y, 3)
         return X, Y
@@ -323,404 +334,180 @@ class Laser_Service():
                 HUD_X, HUD_Y, fill="black", text=self.Gcde_time, anchor="se", tags="HUD")
         ##########################################
 
-    # Left Column #
-    #############################
-    def Entry_Reng_feed_Check(self):
-        try:
-            value = float(self.Reng_feed)
-            vfactor = (25.4/60.0)*self.units.velocity_scale()
-            low_limit = self.min_raster_speed*vfactor
-            if value < low_limit:
-                self.reporter.status(f"Feed Rate should be greater than or equal to {low_limit}")
-                return 2  # Value is invalid number
-        except:
+    def check_velocity(self, new_value, low_speed_limit, name, equal=True):
+        if not isinstance(new_value, Number):
             return 3     # Value not a number
+        vfactor = (25.4/60.0)*self.units.velocity_scale()
+        low_limit = low_speed_limit*vfactor
+        if new_value < low_limit and (equal or new_value == low_limit):
+            self.reporter.error(f"{name} should be greater than {'or equal to' if equal else ''} {low_limit}")
+            return 2  # Value is invalid number
+        return 0         # Value is a valid number
+
+    def check_larger_than(self, value, name, limit=0, equal=True):
+        if not isinstance(value, Number):
+            return 3 # Value not a number
+        if value <= limit and (not equal or value == limit):
+            self.reporter.error(f"{name} should be greater than {'or equal to' if equal else ''} {limit}")
+            return 2  # Value is invalid number
+        return 0         # Value is a valid number
+    
+    def check_between(self, value, name, lower_limit, upper_limit, include_lower=True, include_upper=True):
+        if not isinstance(value, Number):
+            return 3 # Value not a number
+        if (value < lower_limit and (include_lower or value == lower_limit)
+            or value > upper_limit and (include_upper or value == upper_limit)):
+            self.reporter.error(f"{name} should be between {lower_limit} and {upper_limit}")
+            return 2  # Value is invalid number
         return 0         # Value is a valid number
 
     def Entry_Reng_feed_Callback(self, value):
-        self.Reng_feed = value
-        self.entry_set("Reng_feed",
-                       self.Entry_Reng_feed_Check(), new=1)
-    #############################
-
-    def Entry_Veng_feed_Check(self):
-        try:
-            value = float(self.Veng_feed)
-            vfactor = (25.4/60.0)*self.units.velocity_scale()
-            low_limit = self.min_vector_speed*vfactor
-            if value < low_limit:
-                self.reporter.status("Feed Rate should be greater than or equal to {low_limit}")
-                return 2  # Value is invalid number
-        except:
-            return 3     # Value not a number
-        return 0         # Value is a valid number
+        check_result = self.check_velocity(value, self.min_raster_speed, "Feed Rate")
+        if check_result == 0:
+            self.Reng_feed = value
+            self.reporter.data("Reng_feed", self.Reng_feed)
+        self.entry_set("Reng_feed", check_result)
 
     def Entry_Veng_feed_Callback(self, value):
-        self.Veng_feed = value
-        self.entry_set("Veng_feed",
-                       self.Entry_Veng_feed_Check(), new=1)
-    #############################
-
-    def Entry_Vcut_feed_Check(self):
-        try:
-            value = float(self.Vcut_feed)
-            vfactor = (25.4/60.0)*self.units.velocity_scale()
-            low_limit = self.min_vector_speed*vfactor
-            if value < low_limit:
-                self.reporter.status("Feed Rate should be greater than or equal to {low_limit}")
-                return 2  # Value is invalid number
-        except:
-            return 3     # Value not a number
-        return 0         # Value is a valid number
+        check_result = self.check_velocity(value, self.min_vector_speed, "Feed Rate")
+        if check_result == 0:
+            self.Veng_feed = value
+            self.reporter.data("Veng_feed", self.Veng_feed)
+        self.entry_set("Veng_feed", check_result)
 
     def Entry_Vcut_feed_Callback(self, value):
-        self.Vcut_feed = value
-        self.entry_set("Vcut_feed",
-                       self.Entry_Vcut_feed_Check(), new=1)
+        check_result = self.check_velocity(value, self.min_vector_speed, "Feed Rate")
+        if check_result == 0:
+            self.Vcut_feed = value
+            self.reporter.data("Vcut_feed", self.Vcut_feed)
+        self.entry_set("Vcut_feed", check_result)
 
-    #############################
-    def Entry_Step_Check(self):
-        try:
-            value = float(self.jog_step)
-            if value <= 0.0:
-                self.reporter.status("Step should be greater than 0.0")
-                return 2  # Value is invalid number
-        except:
-            return 3     # Value not a number
-        return 0         # Value is a valid number
+    def Entry_Step_Callback(self, value):
+        check_result = self.check_larger_than(value, "Step", equal=False)
+        if check_result == 0:
+            self.jog_step = value
+            self.reporter.data("jog_step", self.jog_step)
+        self.entry_set("Step", check_result)
 
-    def Entry_Step_Callback(self, varName, index, mode):
-        self.entry_set("Step", self.Entry_Step_Check(), new=1)
-
-    #############################
-
-    def Entry_GoToX_Check(self):
-        try:
-            value = float(self.gotoX)
-            if (value < 0.0) and (not self.HomeUR):
-                self.reporter.status("Value should be greater than 0.0")
-                return 2  # Value is invalid number
-            elif (value > 0.0) and self.HomeUR:
-                self.reporter.status("Value should be less than 0.0")
-                return 2  # Value is invalid number
-        except:
-            return 3     # Value not a number
-        return 0         # Value is a valid number
-
-    def Entry_GoToX_Callback(self, varName, index, mode):
-        self.entry_set("GoToX", self.Entry_GoToX_Check(), new=1)
-
-    #############################
-    def Entry_GoToY_Check(self):
-        try:
-            value = float(self.gotoY)
-            if value > 0.0:
-                self.reporter.status("Value should be less than 0.0")
-                return 2  # Value is invalid number
-        except:
-            return 3     # Value not a number
-        return 0         # Value is a valid number
-
-    def Entry_GoToY_Callback(self, varName, index, mode):
-        self.entry_set("GoToY", self.Entry_GoToY_Check(), new=1)
-
-    #############################
-    def Entry_Rstep_Check(self):
-        try:
-            value = get_raster_step_1000in(self.rast_step)
-            if value <= 0 or value > 63:
-                self.reporter.status("Step should be between 0.001 and 0.063 in")
-                return 2  # Value is invalid number
-        except:
-            return 3     # Value not a number
-        return 0         # Value is a valid number
-
-    def Entry_Rstep_Callback(self, varName, index, mode):
+    def Entry_Rstep_Callback(self, value):
+        check_result = self.check_between(value, "Step", 0, 0.063, include_lower=False)
+        if check_result == 0:
+            self.self.rast_step = value
         self.design.RengData.reset_path()
-        self.entry_set("Rstep", self.Entry_Rstep_Check(), new=1)
+        self.entry_set("Rstep", self.Entry_Rstep_Check())
 
-##    ###########################
-
-#############################
-    # End Left Column #
-#############################
-    def bezier_weight_Callback(self, varName=None, index=None, mode=None):
-        self.Reset_RasterPath_and_Update_Time()
-        self.bezier_plot()
-
-    def bezier_M1_Callback(self, varName=None, index=None, mode=None):
-        self.Reset_RasterPath_and_Update_Time()
-        self.bezier_plot()
-
-    def bezier_M2_Callback(self, varName=None, index=None, mode=None):
+    def Entry_bezier_settings_callback(self, value):
+        weight, m1, m2 = value
+        self.bezier_settings.weight = weight
+        self.bezier_settings.m1 = m1
+        self.bezier_settings.m2 = m2
         self.Reset_RasterPath_and_Update_Time()
         self.bezier_plot()
 
     def bezier_plot(self):
-        M1 = float(self.bezier_M1)
-        M2 = float(self.bezier_M2)
-        w = float(self.bezier_weight)
         num = 10
-        x, y = generate_bezier(M1, M2, w, n=num)
+        x, y = generate_bezier(self.bezier_settings, n=num)
         self.reporter.data("bezier_plot", dict(x=x, y=y))
 
-    #############################
+    def Entry_Ink_Timeout_Callback(self, value):
+        check_result = self.check_larger_than(value, "Timeout")
+        if check_result == 0:
+            self.self.svg_settings.ink_timeout = value
+        self.entry_set("Ink_Timeout", check_result)
 
-    def Entry_Ink_Timeout_Check(self):
-        try:
-            value = float(self.ink_timeout)
-            if value < 0.0:
-                self.reporter.status(" Timeout should be 0 or greater")
-                return 2  # Value is invalid number
-        except:
-            return 3     # Value not a number
-        return 0         # Value is a valid number
+    def Entry_Timeout_Callback(self, value):
+        check_result = self.check_larger_than(value, "Timeout", equal=False)
+        if check_result == 0:
+            self.t_timeout = value
+        self.entry_set("Timeout", check_result)
 
-    def Entry_Ink_Timeout_Callback(self, varName, index, mode):
-        self.entry_set("Ink_Timeout",
-                       self.Entry_Ink_Timeout_Check(), new=1)
+    def Entry_N_Timeouts_Callback(self, value):
+        check_result = self.check_larger_than(value, "N_Timeouts", equal=False)
+        if check_result == 0:
+            self.n_timeouts = int(value)
+        self.entry_set("N_Timeouts", check_result)
 
-    #############################
+    def Entry_N_EGV_Passes_Callback(self, value):
+        check_result = self.check_larger_than(value, "EGV passes", limit=1)
+        if check_result == 0:
+            self.n_egv_passes = int(value)
+        self.entry_set("N_EGV_Passes", check_result)
 
-    def Entry_Timeout_Check(self):
-        try:
-            value = float(self.t_timeout)
-            if value <= 0.0:
-                self.reporter.status(" Timeout should be greater than 0 ")
-                return 2  # Value is invalid number
-        except:
-            return 3     # Value not a number
-        return 0         # Value is a valid number
-
-    def Entry_Timeout_Callback(self, varName, index, mode):
-        self.entry_set("Timeout", self.Entry_Timeout_Check(), new=1)
-
-    #############################
-    def Entry_N_Timeouts_Check(self):
-        try:
-            value = float(self.n_timeouts)
-            if value <= 0.0:
-                self.reporter.status(" N_Timeouts should be greater than 0 ")
-                return 2  # Value is invalid number
-        except:
-            return 3     # Value not a number
-        return 0         # Value is a valid number
-
-    def Entry_N_Timeouts_Callback(self, varName, index, mode):
-        self.entry_set("N_Timeouts",
-                       self.Entry_N_Timeouts_Check(), new=1)
-
-    #############################
-    def Entry_N_EGV_Passes_Check(self):
-        try:
-            value = int(self.n_egv_passes)
-            if value < 1:
-                self.reporter.status("EGV passes should be 1 or higher")
-                return 2  # Value is invalid number
-        except:
-            return 3     # Value not a number
-        return 0         # Value is a valid number
-
-    def Entry_N_EGV_Passes_Callback(self, varName, index, mode):
-        self.entry_set("N_EGV_Passes",
-                       self.Entry_N_EGV_Passes_Check(), new=1)
-
-    #############################
-    def Entry_Laser_Area_Width_Check(self):
-        try:
-            value = float(self.laser_bed_size.x)
-            if value <= 0.0:
-                self.reporter.status("Width should be greater than 0")
-                return 2  # Value is invalid number
-        except:
-            return 3     # Value not a number
-        return 0         # Value is a valid number
-
-    def Entry_Laser_Area_Width_Callback(self, varName, index, mode):
-        self.entry_set("Laser_Area_Width",
-                       self.Entry_Laser_Area_Width_Check(), new=1)
-
-    #############################
-    def Entry_Laser_Area_Height_Check(self):
-        try:
-            value = float(self.laser_bed_size.y)
-            if value <= 0.0:
-                self.reporter.status("Height should be greater than 0")
-                return 2  # Value is invalid number
-        except:
-            return 3     # Value not a number
-        return 0         # Value is a valid number
-
-    def Entry_Laser_Area_Height_Callback(self, varName, index, mode):
-        self.entry_set("Laser_Area_Height",
-                       self.Entry_Laser_Area_Height_Check(), new=1)
-
-    #############################
-
-    def Entry_Laser_X_Scale_Check(self):
-        try:
-            value = float(self.laser_pos.xscale)
-            if value <= 0.0:
-                self.reporter.status("X scale factor should be greater than 0")
-                return 2  # Value is invalid number
-        except:
-            return 3     # Value not a number
+    def Entry_Laser_Area_Callback(self, value):
+        w, h = value
+        check_result = self.check_larger_than(w, "Width", equal=False)
+        if check_result == 0:
+            self.laser_bed_size.x = w
+        self.entry_set("Laser_Area_Width", check_result)
+        check_result = self.check_larger_than(h, "Height", equal=False)
+        if check_result == 0:
+            self.laser_bed_size.y = h
+        self.entry_set("Laser_Area_Height", check_result)
         self.Reset_RasterPath_and_Update_Time()
-        return 0         # Value is a valid number
 
-    def Entry_Laser_X_Scale_Callback(self, varName, index, mode):
-        self.entry_set("Laser_X_Scale",
-                       self.Entry_Laser_X_Scale_Check(), new=1)
-    #############################
-
-    def Entry_Laser_Y_Scale_Check(self):
-        try:
-            value = float(self.laser_pos.yscale)
-            if value <= 0.0:
-                self.reporter.status("Y scale factor should be greater than 0")
-                return 2  # Value is invalid number
-        except:
-            return 3     # Value not a number
+    def Entry_Laser_Scale_Callback(self, value):
+        if len(value) == 2:
+            x, y = value
+            r = 1
+        elif len(value) == 3:
+            x, y, r = value
+        check_result = self.check_larger_than(x, "X scale factor", equal=False)
+        if check_result == 0:
+            self.laser_scale.x = x
+        self.entry_set("Laser_X_Scale", check_result)
+        check_result = self.check_larger_than(y, "Y scale factor", equal=False)
+        if check_result == 0:
+            self.laser_scale.y = y
+        self.entry_set("Laser_Y_Scale", check_result)
+        check_result = self.check_larger_than(r, "Rotary scale factor", equal=False)
+        if check_result == 0:
+            self.laser_scale.r = r
+        self.entry_set("Laser_R_Scale", check_result)
         self.Reset_RasterPath_and_Update_Time()
-        return 0         # Value is a valid number
 
-    def Entry_Laser_Y_Scale_Callback(self, varName, index, mode):
-        self.entry_set("Laser_Y_Scale",
-                       self.Entry_Laser_Y_Scale_Check(), new=1)
+    def Entry_Laser_Rapid_Feed_Callback(self, value):
+        check_result = self.check_velocity(value, 1, "Rapid feed")
+        if check_result == 0:
+            self.rapid_feed = value
+        self.entry_set("Laser_Rapid_Feed", check_result)
 
-    #############################
-    def Entry_Laser_R_Scale_Check(self):
-        try:
-            value = float(self.laser_scale.r)
-            if value <= 0.0:
-                self.reporter.status("Rotary scale factor should be greater than 0")
-                return 2  # Value is invalid number
-        except:
-            return 3     # Value not a number
-        self.Reset_RasterPath_and_Update_Time()
-        return 0         # Value is a valid number
+    def Entry_Reng_passes_Callback(self, value):
+        check_result = self.check_larger_than(value, "Number of passes", limit=1)
+        if check_result == 0:
+            self.Reng_passes = int(value)
+        self.entry_set("Reng_passes", check_result)
 
-    def Entry_Laser_R_Scale_Callback(self, varName, index, mode):
-        self.entry_set("Laser_R_Scale",
-                       self.Entry_Laser_R_Scale_Check(), new=1)
+    def Entry_Veng_passes_Callback(self, value):
+        check_result = self.check_larger_than(value, "Number of passes", limit=1)
+        if check_result == 0:
+            self.Veng_passes = int(value)
+        self.entry_set("Veng_passes", check_result)
 
-    #############################
-    def Entry_Laser_Rapid_Feed_Check(self):
-        try:
-            value = float(self.rapid_feed)
-            vfactor = (25.4/60.0)*self.units.velocity_scale()
-            low_limit = 1.0*vfactor
-            if value != 0 and value < low_limit:
-                self.reporter.status(f"Rapid feed should be greater than or equal to {low_limit} (or 0 for default speed)")
-                return 2  # Value is invalid number
-        except:
-            return 3     # Value not a number
-        return 0         # Value is a valid number
+    def Entry_Vcut_passes_Callback(self, value):
+        check_result = self.check_larger_than(value, "Number of passes", limit=1)
+        if check_result == 0:
+            self.Vcut_passes = int(value)
+        self.entry_set("Vcut_passes", check_result)
 
-    def Entry_Laser_Rapid_Feed_Callback(self, varName, index, mode):
-        self.entry_set("Laser_Rapid_Feed",
-                       self.Entry_Laser_Rapid_Feed_Check(), new=1)
+    def Entry_Gcde_passes_Callback(self, value):
+        check_result = self.check_larger_than(value, "Number of passes", limit=1)
+        if check_result == 0:
+            self.Gcde_passes = int(value)
+        self.entry_set("Gcde_passes", check_result)
 
-    # Advanced Column #
-    #############################
-    def Entry_Reng_passes_Check(self):
-        try:
-            value = int(self.Reng_passes)
-            if value < 1:
-                self.reporter.status(
-                    " Number of passes should be greater than 0 ")
-                return 2  # Value is invalid number
-        except:
-            return 3     # Value not a number
-        return 0         # Value is a valid number
+    def Entry_Trace_Gap_Callback(self, value):
+        check_result = 0 if isinstance(value, Number) else 3
+        if check_result == 0:
+            self.trace_gap = int(value)
+        self.entry_set("Trace_Gap", check_result)
 
-    def Entry_Reng_passes_Callback(self, varName, index, mode):
-        self.entry_set("Reng_passes",
-                       self.Entry_Reng_passes_Check(), new=1)
-    #############################
+    def Entry_Trace_Speed_Callback(self, value):
+        check_result = self.check_velocity(value, self.min_vector_speed, "Feed Rate")
+        if check_result == 0:
+            self.trace_speed = value
+        self.entry_set("Trace_Speed", check_result)
 
-    def Entry_Veng_passes_Check(self):
-        try:
-            value = int(self.Veng_passes)
-            if value < 1:
-                self.reporter.status(
-                    " Number of passes should be greater than 0 ")
-                return 2  # Value is invalid number
-        except:
-            return 3     # Value not a number
-        return 0         # Value is a valid number
-
-    def Entry_Veng_passes_Callback(self, varName, index, mode):
-        self.entry_set("Veng_passes",
-                       self.Entry_Veng_passes_Check(), new=1)
-    #############################
-
-    def Entry_Vcut_passes_Check(self):
-        try:
-            value = int(self.Vcut_passes)
-            if value < 1:
-                self.reporter.status(
-                    " Number of passes should be greater than 0 ")
-                return 2  # Value is invalid number
-        except:
-            return 3     # Value not a number
-        return 0         # Value is a valid number
-
-    def Entry_Vcut_passes_Callback(self, varName, index, mode):
-        self.entry_set("Vcut_passes",
-                       self.Entry_Vcut_passes_Check(), new=1)
-
-    #############################
-    def Entry_Gcde_passes_Check(self):
-        try:
-            value = int(self.Gcde_passes)
-            if value < 1:
-                self.reporter.status(
-                    " Number of passes should be greater than 0 ")
-                return 2  # Value is invalid number
-        except:
-            return 3     # Value not a number
-        return 0         # Value is a valid number
-
-    def Entry_Gcde_passes_Callback(self, varName, index, mode):
-        self.entry_set("Gcde_passes",
-                       self.Entry_Gcde_passes_Check(), new=1)
-
-    #############################
-
-    def Entry_Trace_Gap_Check(self):
-        try:
-            value = float(self.trace_gap)
-        except:
-            return 3     # Value not a number
-        return 0         # Value is a valid number
-
-    def Entry_Trace_Gap_Callback(self, varName, index, mode):
-        self.entry_set("Trace_Gap",
-                       self.Entry_Trace_Gap_Check(), new=1)
-
-    #############################
-
-    def Entry_Trace_Speed_Check(self):
-        try:
-            value = float(self.trace_speed)
-            vfactor = (25.4/60.0)*self.units.velocity_scale()
-            low_limit = self.min_vector_speed*vfactor
-            if value < low_limit:
-                self.reporter.status(f"Feed Rate should be greater than or equal to {low_limit}")
-                return 2  # Value is invalid number
-        except:
-            return 3     # Value not a number
-        self.refreshTime()
-        return 0         # Value is a valid number
-
-    def Entry_Trace_Speed_Callback(self, varName, index, mode):
-        self.entry_set("Trace_Speed",
-                       self.Entry_Trace_Speed_Check(), new=1)
-
-    #############################
-
-    def Entry_Inkscape_Path(self, inkscape_path):
+    def Entry_Inkscape_Path_Callback(self, inkscape_path):
         if self.inkscape_warning == False:
             self.inkscape_warning = True
             msg1 = "Beware:"
@@ -1040,38 +827,30 @@ class Laser_Service():
         self.Move_Arbitrary(dx_inches, dy_inches)
 
     def Move_Arb_Right(self, dummy=None):
-        JOG_STEP = float(self.jog_step)
-        self.Move_Arb_Step(JOG_STEP, 0)
+        self.Move_Arb_Step(self.jog_step, 0)
 
     def Move_Arb_Left(self, dummy=None):
-        JOG_STEP = float(self.jog_step)
-        self.Move_Arb_Step(-JOG_STEP, 0)
+        self.Move_Arb_Step(-self.jog_step, 0)
 
     def Move_Arb_Up(self, dummy=None):
-        JOG_STEP = float(self.jog_step)
-        self.Move_Arb_Step(0, JOG_STEP)
+        self.Move_Arb_Step(0, self.jog_step)
 
     def Move_Arb_Down(self, dummy=None):
-        JOG_STEP = float(self.jog_step)
-        self.Move_Arb_Step(0, -JOG_STEP)
+        self.Move_Arb_Step(0, -self.jog_step)
 
     ####################################################
 
     def Move_Right(self, dummy=None):
-        JOG_STEP = float(self.jog_step)
-        self.Rapid_Move(JOG_STEP, 0)
+        self.Rapid_Move(self.jog_step, 0)
 
     def Move_Left(self, dummy=None):
-        JOG_STEP = float(self.jog_step)
-        self.Rapid_Move(-JOG_STEP, 0)
+        self.Rapid_Move(-self.jog_step, 0)
 
     def Move_Up(self, dummy=None):
-        JOG_STEP = float(self.jog_step)
-        self.Rapid_Move(0, JOG_STEP)
+        self.Rapid_Move(0, self.jog_step)
 
     def Move_Down(self, dummy=None):
-        JOG_STEP = float(self.jog_step)
-        self.Rapid_Move(0, -JOG_STEP)
+        self.Rapid_Move(0, -self.jog_step)
 
     def Rapid_Move(self, dx, dy):
         if self.GUI_Disabled:
@@ -1571,9 +1350,22 @@ class Laser_Service():
         self.pos_offset = Position(0.0, 0.0)
         self.menu_View_Refresh()
 
-    def GoTo(self):
-        xpos = float(self.gotoX)
-        ypos = float(self.gotoY)
+    def GoTo(self, pos):
+        xpos = pos[0]
+        ypos = pos[1]
+        if not isinstance(xpos, Number) or not isinstance(ypos, Number):
+            self.reporter.error("Goto parameters are not numbers")
+            return
+        if (xpos < 0.0) and (not self.HomeUR):
+            self.reporter.error("Goto x value should be greater than 0.0")
+            return
+        elif (xpos > 0.0) and self.HomeUR:
+            self.reporter.error("Goto x value should be less than 0.0")
+            return
+        elif ypos > 0:
+            self.reporter.error("Goto y value should be less than 0.0")
+            return
+
         if self.k40 != None:
             self.k40.home_position()
         self.laser_pos.x = 0.0

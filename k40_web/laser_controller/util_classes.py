@@ -39,10 +39,10 @@ class DesignTransform():
 
 
 class BezierSettings():
-    def __init__(self, bezier_weight, bezier_M1, bezier_M2):
-        self.bezier_weight = bezier_weight
-        self.bezier_M1 = bezier_M1
-        self.bezier_M2 = bezier_M2
+    def __init__(self, weight, m1, m2):
+        self.weight = weight
+        self.m1 = m1
+        self.m2 = m2
 
 
 # we work with mm and mm/s internally, but allow for display in inch and in/min
