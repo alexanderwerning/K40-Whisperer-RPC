@@ -3,7 +3,6 @@
 from time import time
 from math import sqrt
 DEBUG = False
-QUIET = False
 
 def format_time(time_in_seconds):
     # format the duration from seconds to something human readable
@@ -21,13 +20,6 @@ def format_time(time_in_seconds):
         return res
     else:
         return "?"
-
-
-def Scale_Text_Value(format_txt, Text_Value, factor):
-    try:
-        return format_txt % (float(Text_Value)*factor)
-    except:
-        return ''
 
 
 def rotate_raster(image_in):
