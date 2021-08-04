@@ -65,7 +65,7 @@ def work(taskQueue, statusQueue):
         "Raster_Vector_Eng": service.Raster_Vector_Eng,
         "Vector_Eng_Cut": service.Vector_Eng_Cut,
         "Raster_Vector_Cut": service.Raster_Vector_Cut,
-        "Reload_design": service.Reload_design,
+        "Reload_design": service.reload_design,
         "Home": service.Home,
         "Unlock": service.Unlock,
         "Stop": service.Stop,
@@ -90,23 +90,14 @@ def work(taskQueue, statusQueue):
         # "Entry_Vcut_feed_Callback": service.Entry_Vcut_feed_Callback,
         # "Entry_Step_Callback": service.Entry_Step_Callback,
         "mouse_click": service.mouse_click,
-        "Open_design": service.Open_design
+        "Open_design": service.open_design
     }
 
 
     '''
-    var_names_strings = ["include_Reng", "include_Veng", "include_Vcut", "include_Gcde",
-                "include_Time", "include_Trace",
-                "halftone", "negate", "HomeUR", "inputCSYS",
-                "mirror", "rotate", "engraveUP", "init_home", "post_home", "post_beep",
-                "post_disp", "post_exec", "pre_pr_crc", "inside_first", "comb_engrave",
-                "comb_vector", "zoom2image", "rotary", "trace_w_laser", "board_name",
-                "units", "Reng_feed", "Veng_feed", "Vcut_feed", "jog_step",
-                "Reng_passes", "Veng_passes", "Vcut_passes", "Gcde_passes", "rast_step",
-                "ht_size", "LaserXsize", "LaserYsize", "LaserXscale", "LaserYscale",
-                "LaserRscale", "rapid_feed", "gotoX", "gotoY", "bezier_M1", "bezier_M2",
-                "bezier_weight", "trace_gap", "trace_speed", "t_timeout", "n_timeouts",
-                "ink_timeout"
+    var_names_strings = [ "board_name",
+                "units", 
+                "ht_size", 
                 
     '''
 
@@ -141,7 +132,12 @@ def work(taskQueue, statusQueue):
             elif cmd == "set":
                 param_name = message["key"]
                 param_value = message["value"]
-                service.set_var_with_check(param_name, param_value)
+                try:
+                    setter_fn = getattr(service, "set_"+param_name)
+                    setter_fn(param_value)
+                except AttributeError as e:
+                    print(e)
+                    JSON_Reporter.error(f"{param_name} does not exist")
                 #JSON_Reporter.data(param_name, getattr(service, param_name)) # this should be handled by set var function
             else:
                 print("sorry i did not understand ", body)

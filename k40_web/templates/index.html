@@ -191,8 +191,8 @@
                             </label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" value="" id="rotary">
-                            <label class="form-check-label" for="rotary">
+                            <input class="form-check-input" type="checkbox" value="" id="is_rotary">
+                            <label class="form-check-label" for="is_rotary">
                               Use Rotary Settings
                             </label>
                         </div>
@@ -249,13 +249,19 @@
                             <input id="ht_size" class="form-control" pattern="([0-9]*[.])?[0-9]+">
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" value="" id="engraveUp">
-                            <label class="form-check-label" for="engraveUp">
+                            <input class="form-check-input" type="checkbox" value="" id="engrave_up">
+                            <label class="form-check-label" for="engrave_up">
                             Engrave Bottom Up
                             </label>
                         </div>
-                        bezier:
-                        black slope, white slope, transition + graph canvas
+                        <label class="form-label">Slope, Black %val</label>
+                        <input type="range" class="form-range" min="1" max="50" step="0.1" id="bezier_m1">
+                        <label class="form-label">Slope, White %val</label>
+                        <input type="range" class="form-range" min="0" max="1" step="0.01" id="bezier_m2">
+                        <label class="form-label">Transition %val</label>
+                        <input type="range" class="form-range" min="0" max="10" step="0.1" id="bezier_weight">
+                        <canvas id=bezierCanvas></canvas>
+
                     </div>
                 </div>
                 <div class="tab-pane fade" id="trace" role="tabpanel" aria-labelledby="trace_tab">

@@ -130,44 +130,101 @@ class Laser_Service():
         self.min_vector_speed = 1.1  # in/min
         self.min_raster_speed = 12  # in/min
 
+    def set_include_Reng(self, value):
+        self.include_Reng = value==True
+        self.reporter.data("include_Reng", self.include_Reng)
 
-################################################################################
-    def set_var_with_check(self, name, value):
-        print(f"set var with check {name}, {value}, {type(value)}")
-        callbacks = {"Reng_feed": self.Entry_Reng_feed_Callback,
-                    "Veng_feed": self.Entry_Veng_feed_Callback,
-                    "Vcut_feed": self.Entry_Vcut_feed_Callback,
-                    "step": self.Entry_Step_Callback,
-                    "Rstep": self.Entry_Rstep_Callback,
-                    "bezier_settings": self.Entry_bezier_settings_callback,
-                    "ink_timeout":  self.Entry_Ink_Timeout_Callback,
-                    "timeout": self.Entry_Timeout_Callback,
-                    "n_timeouts": self.Entry_N_Timeouts_Callback,
-                    "n_EGV_passes": self.Entry_N_EGV_Passes_Callback,
-                    "laser_pos": lambda x: self.mouse_click(x[0], x[1]),
-                    "laser_size": self.Entry_Laser_Area_Callback,
-                    "laser_scale": self.Entry_Laser_Scale_Callback,
-                    "rapid_feed": self.Entry_Laser_Rapid_Feed_Callback,
-                    "Reng_passes": self.Entry_Reng_passes_Callback,
-                    "Veng_passes": self.Entry_Veng_passes_Callback,
-                    "Vcut_passes": self.Entry_Vcut_passes_Callback,
-                    "Gcde_passes": self.Entry_Gcde_passes_Callback,
-                    "Trace_gap": self.Entry_Trace_Gap_Callback,
-                    "trace_speed": self.Entry_Trace_Speed_Callback,
-                    "inkscape_path": self.Entry_Inkscape_Path_Callback}
-        binary_vars = ["include_Reng", "include_Veng", "include_Vcut", "include_Gcde",
-                "include_Time", "include_Trace",
-                "halftone", "invert", "HomeUR", "inputCSYS",
-                "mirror", "rotate", "engraveUP", "init_home", "post_home", "post_beep",
-                "post_disp", "post_exec", "pre_pr_crc", "inside_first", "comb_engrave",
-                "comb_vector", "zoom2image", "rotary", "trace_w_laser"]
-        if name in callbacks:
-            callbacks[name](value)
-        elif name in binary_vars:
-            setattr(self, name, value==True)
-            self.reporter.data(name, value==True)
-        else:
-            self.reporter.error(f"Callback {name} not accessible")
+    def set_include_Veng(self, value):
+        self.include_Veng = value==True
+        self.reporter.data("include_Veng", self.include_Veng)
+
+    def set_include_Vcut(self, value):
+        self.include_Vcut = value==True
+        self.reporter.data("include_Vcut", self.include_Vcut)
+
+    def set_include_Gcde(self, value):
+        self.include_Gcde = value==True
+        self.reporter.data("include_Gcde", self.include_Gcde)
+
+    def set_include_Time(self, value):
+        self.include_Time = value==True
+        self.reporter.data("include_Time", self.include_Time)
+
+    def set_halftone(self, value):
+        self.halftone = value==True
+        self.reporter.data("halftone", self.halftone)
+
+    def set_invert(self, value):
+        self.invert = value==True
+        self.reporter.data("invert", self.invert)
+
+    def set_HomeUR(self, value):
+        self.HomeUR = value==True
+        self.reporter.data("HomeUR", self.HomeUR)
+
+    def set_inputCSYS(self, value):
+        self.inputCSYS = value==True
+        self.reporter.data("inputCSYS", self.inputCSYS)
+
+    def set_mirror(self, value):
+        self.mirror = value==True
+        self.reporter.data("mirror", self.mirror)
+
+    def set_rotate(self, value):
+        self.rotate = value==True
+        self.reporter.data("rotate", self.rotate)
+
+    def set_engrave_up(self, value):
+        self.engrave_up = value==True
+        self.reporter.data("engrave_up", self.engrave_up)
+
+    def set_init_home(self, value):
+        self.init_home = value==True
+        self.reporter.data("init_home", self.init_home)
+
+    def set_post_home(self, value):
+        self.post_home = value==True
+        self.reporter.data("post_home", self.post_home)
+
+    def set_post_beep(self, value):
+        self.post_beep = value==True
+        self.reporter.data("post_beep", self.post_beep)
+
+    def set_post_disp(self, value):
+        self.post_disp = value==True
+        self.reporter.data("post_disp", self.post_disp)
+
+    def set_post_exec(self, value):
+        self.post_exec = value==True
+        self.reporter.data("post_exec", self.post_exec)
+
+    def set_pre_pr_crc(self, value):
+        self.pre_pr_crc = value==True
+        self.reporter.data("pre_pr_crc", self.pre_pr_crc)
+
+    def set_inside_first(self, value):
+        self.inside_first = value==True
+        self.reporter.data("inside_first", self.inside_first)
+
+    def set_comb_engrave(self, value):
+        self.comb_engrave = value==True
+        self.reporter.data("comb_engrave", self.comb_engrave)
+
+    def set_comb_vector(self, value):
+        self.comb_vector = value==True
+        self.reporter.data("comb_vector", self.comb_vector)
+
+    def set_zoom2image(self, value):
+        self.zoom2image = value==True
+        self.reporter.data("zoom2image", self.zoom2image)
+
+    def set_is_otary(self, value):
+        self.is_rotary = value==True
+        self.reporter.data("is_rotary", self.is_rotary)
+
+    def set_trace_w_laser(self, value):
+        self.trace_w_laser = value==True
+        self.reporter.data("trace_w_laser", self.trace_w_laser)
 
     def entry_set(self, field, calc_flag=0):
         if calc_flag == 3:
@@ -361,47 +418,65 @@ class Laser_Service():
             return 2  # Value is invalid number
         return 0         # Value is a valid number
 
-    def Entry_Reng_feed_Callback(self, value):
+    def set_design_scale(self, value):
+        check_result = self.check_larger_than(value, "Design scale", equal=False)
+        if check_result == 0:
+            self.design_transform.scale = value
+            self.reporter.data("design_scale", self.design_transform.scale)
+            self.reload_design()
+        self.entry_set("design_scale", check_result)
+
+    def set_Reng_feed(self, value):
         check_result = self.check_velocity(value, self.min_raster_speed, "Feed Rate")
         if check_result == 0:
             self.Reng_feed = value
             self.reporter.data("Reng_feed", self.Reng_feed)
         self.entry_set("Reng_feed", check_result)
 
-    def Entry_Veng_feed_Callback(self, value):
+    def set_Veng_feed(self, value):
         check_result = self.check_velocity(value, self.min_vector_speed, "Feed Rate")
         if check_result == 0:
             self.Veng_feed = value
             self.reporter.data("Veng_feed", self.Veng_feed)
         self.entry_set("Veng_feed", check_result)
 
-    def Entry_Vcut_feed_Callback(self, value):
+    def set_Vcut_feed(self, value):
         check_result = self.check_velocity(value, self.min_vector_speed, "Feed Rate")
         if check_result == 0:
             self.Vcut_feed = value
             self.reporter.data("Vcut_feed", self.Vcut_feed)
         self.entry_set("Vcut_feed", check_result)
 
-    def Entry_Step_Callback(self, value):
+    def set_jog_step(self, value):
         check_result = self.check_larger_than(value, "Step", equal=False)
         if check_result == 0:
             self.jog_step = value
             self.reporter.data("jog_step", self.jog_step)
         self.entry_set("Step", check_result)
 
-    def Entry_Rstep_Callback(self, value):
+    def set_rast_step(self, value):
         check_result = self.check_between(value, "Step", 0, 0.063, include_lower=False)
         if check_result == 0:
             self.rast_step = value
             self.reporter.data("Step", self.rast_step)
         self.design.RengData.reset_path()
         self.entry_set("Rstep", check_result)
-
-    def Entry_bezier_settings_callback(self, value):
-        weight, m1, m2 = value
-        self.bezier_settings.weight = weight
-        self.bezier_settings.m1 = m1
-        self.bezier_settings.m2 = m2
+    
+    def set_bezier_m1(self, value):
+        self.bezier_settings.m1 = value
+        self.reporter.data("bezier_m1", value)
+        self.Reset_RasterPath_and_Update_Time()
+        self.bezier_plot()
+    
+    def set_bezier_m2(self, value):
+        self.bezier_settings.m2 = value
+        self.reporter.data("bezier_m2", value)
+        self.Reset_RasterPath_and_Update_Time()
+        self.bezier_plot()
+    
+    def set_bezier_weight(self, value):
+        self.bezier_settings.weight = value
+        self.reporter.data("bezier_weight", value)
         self.Reset_RasterPath_and_Update_Time()
         self.bezier_plot()
 
@@ -410,45 +485,45 @@ class Laser_Service():
         x, y = generate_bezier(self.bezier_settings, n=num)
         self.reporter.data("bezier_plot", dict(x=x, y=y))
 
-    def Entry_Ink_Timeout_Callback(self, value):
+    def set_ink_timeout(self, value):
         check_result = self.check_larger_than(value, "Timeout")
         if check_result == 0:
             self.svg_settings.ink_timeout = value
             self.reporter.data("ink_timeout", self.svg_settings.ink_timeout)
         self.entry_set("Ink_Timeout", check_result)
 
-    def Entry_Timeout_Callback(self, value):
+    def set_t_timeout(self, value):
         check_result = self.check_larger_than(value, "Timeout", equal=False)
         if check_result == 0:
             self.t_timeout = value
         self.entry_set("Timeout", check_result)
 
-    def Entry_N_Timeouts_Callback(self, value):
+    def set_n_timeouts(self, value):
         check_result = self.check_larger_than(value, "N_Timeouts", equal=False)
         if check_result == 0:
             self.n_timeouts = int(value)
         self.entry_set("N_Timeouts", check_result)
 
-    def Entry_N_EGV_Passes_Callback(self, value):
+    def set_n_egv_passes(self, value):
         check_result = self.check_larger_than(value, "EGV passes", limit=1)
         if check_result == 0:
             self.n_egv_passes = int(value)
         self.entry_set("N_EGV_Passes", check_result)
 
-    def Entry_Laser_Area_Callback(self, value):
+    def set_laser_bed_size(self, value):
         w, h = value
         check_result = self.check_larger_than(w, "Width", equal=False)
         if check_result == 0:
             self.laser_bed_size.x = w
-        self.entry_set("Laser_Area_Width", check_result)
+        self.entry_set("Laser bed width", check_result)
         check_result = self.check_larger_than(h, "Height", equal=False)
         if check_result == 0:
             self.laser_bed_size.y = h
         self.reporter.data("laser_bed_size", self.laser_bed_size.aslist())
-        self.entry_set("Laser_Area_Height", check_result)
+        self.entry_set("Laser bed height", check_result)
         self.Reset_RasterPath_and_Update_Time()
 
-    def Entry_Laser_Scale_Callback(self, value):
+    def set_laser_scale(self, value):
         if len(value) == 2:
             x, y = value
             r = 1
@@ -469,56 +544,56 @@ class Laser_Service():
         self.entry_set("Laser_R_Scale", check_result)
         self.Reset_RasterPath_and_Update_Time()
 
-    def Entry_Laser_Rapid_Feed_Callback(self, value):
+    def set_rapid_feed(self, value):
         check_result = self.check_velocity(value, 1, "Rapid feed")
         if check_result == 0:
             self.rapid_feed = value
             self.reporter.data("rapid_feed", self.rapid_feed)
-        self.entry_set("Laser_Rapid_Feed", check_result)
+        self.entry_set("Laser rapid feed", check_result)
 
-    def Entry_Reng_passes_Callback(self, value):
+    def set_Reng_passes(self, value):
         check_result = self.check_larger_than(value, "Number of passes", limit=1)
         if check_result == 0:
             self.Reng_passes = int(value)
             self.reporter.data("Reng_passes", self.Reng_passes)
         self.entry_set("Reng_passes", check_result)
 
-    def Entry_Veng_passes_Callback(self, value):
+    def set_Veng_passes(self, value):
         check_result = self.check_larger_than(value, "Number of passes", limit=1)
         if check_result == 0:
             self.Veng_passes = int(value)
             self.reporter.data("Veng_passes", self.Veng_passes)
         self.entry_set("Veng_passes", check_result)
 
-    def Entry_Vcut_passes_Callback(self, value):
+    def set_Vcut_passes(self, value):
         check_result = self.check_larger_than(value, "Number of passes", limit=1)
         if check_result == 0:
             self.Vcut_passes = int(value)
             self.reporter.data("Vcut_passes", self.Vcut_passes)
         self.entry_set("Vcut_passes", check_result)
 
-    def Entry_Gcde_passes_Callback(self, value):
+    def set_Gcde_passes(self, value):
         check_result = self.check_larger_than(value, "Number of passes", limit=1)
         if check_result == 0:
             self.Gcde_passes = int(value)
             self.reporter.data("Gcde_passes", self.Gcde_passes)
         self.entry_set("Gcde_passes", check_result)
 
-    def Entry_Trace_Gap_Callback(self, value):
+    def set_trace_gap(self, value):
         check_result = 0 if isinstance(value, Number) else 3
         if check_result == 0:
             self.trace_gap = int(value)
             self.reporter.data("trace_gap", self.trace_gap)
         self.entry_set("Trace_Gap", check_result)
 
-    def Entry_Trace_Speed_Callback(self, value):
+    def set_trace_speed(self, value):
         check_result = self.check_velocity(value, self.min_vector_speed, "Feed Rate")
         if check_result == 0:
             self.trace_speed = value
             self.reporter.data("trace_speed", self.trace_speed)
         self.entry_set("Trace_Speed", check_result)
 
-    def Entry_Inkscape_Path_Callback(self, inkscape_path):
+    def set_inkscape_path(self, inkscape_path):
         if self.inkscape_warning == False:
             self.inkscape_warning = True
             msg1 = "Beware:"
@@ -531,10 +606,10 @@ class Laser_Service():
         else:
             self.inkscape_path = path
 
-    def Reload_design(self):
-        self.Open_design(self.DESIGN_FILE)
+    def reload_design(self):
+        self.open_design(self.DESIGN_FILE)
 
-    def Open_design(self, filename):
+    def open_design(self, filename):
         if self.GUI_Disabled:
             self.reporter.status("Busy")
             return
@@ -733,7 +808,7 @@ class Laser_Service():
 
     #####################################################################
     def make_raster_coords(self):
-        make_raster_coords(self.design.RengData, self.laser_scale, self.design_transform, self.isRotary, self.bezier_settings, self.reporter, self.rast_step)
+        make_raster_coords(self.design.RengData, self.laser_scale, self.design_transform, self.is_rotary, self.bezier_settings, self.reporter, self.rast_step)
 
     ##########################################################################
 
@@ -898,7 +973,7 @@ class Laser_Service():
             if self.k40 != None:
                 Xscale = self.laser_scale.x
                 Yscale = self.laser_scale.y
-                if self.isRotary:
+                if self.is_rotary:
                     Rscale = self.laser_scale.r
                     Yscale = Yscale*Rscale
 
@@ -907,7 +982,7 @@ class Laser_Service():
                     dymils = int(round(dymils * Yscale))
                 self.k40.set_n_timeouts(10)
 
-                if self.isRotary and float(self.rapid_feed):
+                if self.is_rotary and float(self.rapid_feed):
                     self.slow_jog(int(dxmils), int(dymils))
                 else:
                     self.k40.rapid_move(int(dxmils), int(dymils))
@@ -1074,7 +1149,7 @@ class Laser_Service():
         
         if self.design.RengData.ecoords == []:
             self.make_raster_coords()
-        return make_trace_path(bounds, self.laser_scale, self.design.RengData, Vcut_coords, Veng_coords, Gcode_coords, self.trace_gap, self.isRotary)
+        return make_trace_path(bounds, self.laser_scale, self.design.RengData, Vcut_coords, Veng_coords, Gcode_coords, self.trace_gap, self.is_rotary)
 
     ################################################################################
 
@@ -1097,7 +1172,7 @@ class Laser_Service():
             else:
                 FlipXoffset = 0
 
-            if self.isRotary:
+            if self.is_rotary:
                 Rapid_Feed = float(self.rapid_feed)*feed_factor
             else:
                 Rapid_Feed = 0.0
@@ -1123,7 +1198,7 @@ class Laser_Service():
                 Vcut_coords = mirror_rotate_vector_coords(Vcut_coords, self.design.bounds, self.design_transform)
 
                 Vcut_coords, startx, starty = scale_vector_coords(
-                    Vcut_coords, startx, starty, self.laser_scale, self.isRotary)
+                    Vcut_coords, startx, starty, self.laser_scale, self.is_rotary)
                 Vector_Cut_egv_inst = egv(
                     target=lambda s: Vector_Cut_data.append(s))
                 Vector_Cut_egv_inst.make_egv_data(
@@ -1155,7 +1230,7 @@ class Laser_Service():
                 Veng_coords = mirror_rotate_vector_coords(Veng_coords, self.design.bounds, self.design_transform)
 
                 Veng_coords, startx, starty = self.scale_vector_coords(
-                    Veng_coords, startx, starty, self.laser_scale, self.isRotary)
+                    Veng_coords, startx, starty, self.laser_scale, self.is_rotary)
                 Vector_Eng_egv_inst = egv(
                     target=lambda s: Vector_Eng_data.append(s))
                 Vector_Eng_egv_inst.make_egv_data(
@@ -1196,13 +1271,13 @@ class Laser_Service():
             if (operation_type.find("Raster_Eng") > -1) and (self.design.RengData.ecoords != []):
                 Feed_Rate = self.Reng_feed*feed_factor
                 Raster_step = get_raster_step_1000in(self.rast_step)
-                if not self.engraveUP:
+                if not self.engrave_up:
                     Raster_step = -Raster_step
 
                 raster_startx = 0
 
                 Yscale = self.laser_pos.yscale
-                if self.isRotary:
+                if self.is_rotary:
                     Yscale = Yscale*self.laser_scale.r
                 raster_starty = Yscale*starty
 
@@ -1232,7 +1307,7 @@ class Laser_Service():
                 Gcode_coords = mirror_rotate_vector_coords(Gcode_coords, self.design.bounds, self.design_transform)
 
                 Gcode_coords, startx, starty = scale_vector_coords(
-                    Gcode_coords, startx, starty, self.laser_scale, self.isRotary)
+                    Gcode_coords, startx, starty, self.laser_scale, self.is_rotary)
                 G_code_Cut_egv_inst = egv(
                     target=lambda s: G_code_Cut_data.append(s))
                 G_code_Cut_egv_inst.make_egv_data(
@@ -1490,14 +1565,14 @@ class Laser_Service():
         pass
 
     def Entry_Design_Scale_Callback(self, varname, index, mode):
-        self.menu_Reload_Design()
+        self.reload_design()
 
     def menu_Inside_First_Callback(self, varName, index, mode):
         if self.design.GcodeData.ecoords != []:
             if self.design.VcutData.sorted == True:
-                self.menu_Reload_Design()
+                self.reload_design()
             elif self.design.VengData.sorted == True:
-                self.menu_Reload_Design()
+                self.reload_design()
 
     def menu_Calc_Raster_Time(self, event=None):
         self.set_gui("disabled")
@@ -1569,7 +1644,7 @@ class Laser_Service():
 
             Xscale = 1/self.laser_scale.x
             Yscale = 1/self.laser_scale.y
-            if self.isRotary:
+            if self.is_rotary:
                 Rscale = 1/self.laser_scale.r
                 Yscale = Yscale*Rscale
 
@@ -1626,7 +1701,7 @@ class Laser_Service():
         if self.include_Trace:
             Xscale = 1/self.laser_scale.x
             Yscale = 1/self.laser_scale.y
-            if self.isRotary:
+            if self.is_rotary:
                 Rscale = 1/self.laser_scale.r
                 Yscale = Yscale*Rscale
 

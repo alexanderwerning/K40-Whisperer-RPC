@@ -20,10 +20,17 @@ state = {
     "inputCSYS": false,
     "design_scale": 1.0,
     "inside_first": true,
-    "rotary": false,
+    "is_rotary": false,
     "Reng_passes": 1,
     "Veng_passes": 1,
     "Vcut_passes": 1,
+    //raster
+    "ht_size": 100,
+    "rast_step": 100,
+    "bezier_m1": 2.5,
+    "bezier_m2": 0.5,
+    "bezier_weight": 3.5,
+    "bezier_plot": {"x": [], "y": []},
     },
     listeners: {},
     addListener: function (variable, listener){
@@ -280,6 +287,32 @@ function setupCanvas(){
     state.addListener("pos_offset", redraw);
 }
 
+function setupBezierCanvas(){
+    canvas = document.getElementById("bezierCanvas");
+    w = canvas.width;
+    h = canvas.height;
+
+    ctx = canvas.getContext("2d");
+
+    function redraw(){
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.strokeStyle = "#000000";
+        ctx.beginPath();
+        var bezier_x = state.variables["bezier_plot"]["x"];
+        var bezier_y = state.variables["bezier_plot"]["y"];
+        
+        ctx.moveTo(w*bezier_x[0]/255, h-h*bezier_y[0]/255);
+        for(var i = 0; i < bezier_x.length; i++){
+            ctx.lineTo(w*bezier_x[i]/255, h-h*bezier_y[i]/255);
+        }
+        ctx.moveTo(w*bezier_x[0]/255, h-h*bezier_y[0]/255);
+        ctx.closePath();
+        ctx.stroke();
+    }
+    
+    state.addListener("bezier_plot", redraw);
+}
 
 function upload_file_setup(){
     var btn = document.getElementById("Upload_file");
@@ -358,9 +391,9 @@ function init_UI(){
     bindCheckbox("mirror");
     bindCheckbox("rotate");
     bindCheckbox("inputCSYS");
-    bindInput("design_scale", );
+    bindInput("design_scale", true);
     bindCheckbox("inside_first");
-    bindCheckbox("rotary");
+    bindCheckbox("is_rotary");
     bindCheckbox("comb_engrave");
     bindCheckbox("comb_vector");
 
@@ -369,6 +402,13 @@ function init_UI(){
     bindInput("Vcut_passes", true);
     // settings tab
     // raster tab
+    bindInput("rast_step", true);
+    bindInput("ht_size", true);
+
+    bindCheckbox("engrave_up");
+    bindInput("bezier_m1", true);
+    bindInput("bezier_m2", true);
+    bindInput("bezier_weight", true);
     // trace tab
 
     upload_file_setup();
@@ -383,4 +423,5 @@ function init_UI(){
 
     statusStream();
     setupCanvas();
+    setupBezierCanvas();
 }
