@@ -97,22 +97,21 @@ def create_app(test_config=None):
         return render_template('index.html')
 
 
-    @app.route('/cmd', methods=['GET', 'POST'])
-    def send_command():
+    @app.route('/cmd/<command>', methods=['GET', 'POST'])
+    def send_command(command):
         # if cmd legal, exists etc
         print(json.dumps(request.json))
-        send_task(json.dumps(request.json))
-
+        send_task(json.dumps(dict(command=command, parameter=request.json)))
         return "OK"
 
 
     @app.route("/settings/<param>", methods=["GET", "POST"])
-    def command_sync(param):
+    def settings_rest(param):
         print(json.dumps(request.json))
         if request.method == "POST":
-            send_task(json.dumps(dict(cmd="set", key=param, value=request.json)))
+            send_task(json.dumps(dict(command="set", key=param, value=request.json)))
         else:
-            send_task(json.dumps(dict(cmd="get", key=param)))
+            send_task(json.dumps(dict(command="get", key=param)))
 
         return "OK"
 
@@ -134,7 +133,7 @@ def create_app(test_config=None):
             filename = secure_filename(file.filename)
             file_path = Path(app.config['UPLOAD_FOLDER']) / filename
             file.save(file_path)
-            command = dict(command="Open_design", value=file_path.__fspath__())
+            command = dict(command="Open_design", parameter=file_path.__fspath__())
             send_task(json.dumps(command))
             return "OK"
         else:

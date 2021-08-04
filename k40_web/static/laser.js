@@ -12,6 +12,16 @@ state = {
     "Reng_coords": [],
     "Trace_coords": [],
     "pos_offset": [0, 0],
+    // advanced
+    "halftone": false,
+    "invert": false,
+    "mirror": false,
+    "rotate": false,
+    "inputCSYS": false,
+    "design_scale": 1.0,
+    "inside_first": true,
+    "rotary": false,
+
     },
     listeners: {},
     addListener: function (variable, listener){
@@ -33,16 +43,28 @@ function setValue(name, value){
     }
 }
 
-function sendRequest(cmd, data=""){
+function sendCommand(cmd, data=""){
     console.log(cmd+"("+data+") sent");
-    fetch("/cmd", {
+    fetch("/cmd/"+cmd, {
         headers: {
             'Content-Type': 'application/json'
         },
         method: "POST",
-    body: JSON.stringify({"command": cmd, "value":data})
+    body: JSON.stringify(data)
     });
 }
+
+function sendData(variable, data=""){
+    console.log(variable+"("+data+") sent");
+    fetch("/settings/"+variable, {
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        method: "POST",
+    body: JSON.stringify(data)
+    });
+}
+
 
 function statusStream() {
     var source = new EventSource('/stream');
@@ -71,7 +93,7 @@ function statusStream() {
                 break;
             case "fieldWarning":
                 var elm = document.getElementById(message.content);
-                elm.classList.add("fieldError");
+                elm.classList.add("FieldError");
                 break;
             case "fieldError":
                 var elm = document.getElementById(message.content);
@@ -92,19 +114,33 @@ function statusStream() {
     };
 }
 
-function bindInput(input, callback_name){
+function bindInput(input, is_numeric=false){
     var elm = document.getElementById(input);
+    
     elm.addEventListener("input",
         function(){
-            sendRequest(callback_name, elm.value);
-            state.variables[input]=elm.value;
+            var value = elm.value;
+            if (is_numeric){
+                value = parseFloat(value);
+            }
+            sendData(input, value);
+            state.variables[input]=value;
         });
     state.addListener(input, function(value){elm.value = value;})
 }
 
 function bindButton(button){
     var elm = document.getElementById(button);
-    elm.addEventListener("click", function(){sendRequest(button);});
+    elm.addEventListener("click", function(){sendCommand(button);});
+}
+
+function bindCheckbox(checkbox){
+    var elm = document.getElementById(checkbox);
+    elm.addEventListener("click", function(){
+        sendData(checkbox, elm.checked);
+            state.variables[checkbox] = elm.checked;
+    });
+    state.addListener(checkbox, function(value){elm.checked = value;})
 }
 
 
@@ -148,7 +184,7 @@ function setupCanvas(){
                         (ev.clientY- rect.top-offset[1])];
         setValue("laser_pos",  inverseTransformCoord(canvas_pos[0], canvas_pos[1]));
         var relative_pos = [canvas_pos[0]/rect.width, canvas_pos[1]/rect.height]
-        sendRequest("mouse_click", relative_pos);
+        sendCommand("mouse_click", relative_pos);
     });
 
     function inverseTransformCoord(x,y){
@@ -242,7 +278,50 @@ function setupCanvas(){
     state.addListener("pos_offset", redraw);
 }
 
+
+function upload_file_setup(){
+    var btn = document.getElementById("Upload_file");
+    var upload_elm = document.getElementById("file_select");
+    btn.addEventListener("click", function(){
+        const formData = new FormData();
+        formData.append("file", upload_elm.files[0]);
+        console.log(formData.files);
+        fetch("/upload", {
+            method: "POST",
+            body: formData,
+        });
+    });
+}
+
+var tabs;
+var buttons;
+function tabUpdate(new_active){
+    var idx = buttons.indexOf(document.getElementById(new_active.id));
+    buttons.forEach(element => {
+        element.classList.remove("active");
+    });
+    buttons[idx].classList.add("active");
+    tabs.forEach(element => {
+        element.classList.remove("active");
+        element.classList.remove("show");
+    });
+    tabs[idx].classList.add("active");
+    tabs[idx].classList.add("show");
+}
+
+function addTabs(tab_list, button_list){
+    tabs = tab_list;
+    buttons = button_list;
+    function btnCallback(ev){
+        tabUpdate(ev.target);
+    }
+    for(var i = 0; i < button_list.length; i++){
+        button_list[i].addEventListener("click", btnCallback);
+    }
+}
+
 function init_UI(){
+    // control tab
     bindButton("Initialize_Laser");
     bindButton("Home");
     bindButton("Unlock");
@@ -266,24 +345,26 @@ function init_UI(){
     bindButton("Vector_Eng");
     bindButton("Vector_Cut");
 
-    bindInput("Reng_feed", "Entry_Reng_feed_Callback");
-    bindInput("Veng_feed", "Entry_Veng_feed_Callback");
-    bindInput("Vcut_feed", "Entry_Vcut_feed_Callback");
+    bindInput("Reng_feed", true);
+    bindInput("Veng_feed", true);
+    bindInput("Vcut_feed", true);
 
     bindButton("Reload_design");
-    function upload_file_setup(){
-        var btn = document.getElementById("Upload_file");
-        var upload_elm = document.getElementById("file_select");
-        btn.addEventListener("click", function(){
-            const formData = new FormData();
-            formData.append("file", upload_elm.files[0]);
-            console.log(formData.files);
-            fetch("/upload", {
-                method: "POST",
-                body: formData,
-            });
-        });
-    }
+    // advanced tab
+    bindCheckbox("halftone");
+    bindCheckbox("invert");
+    bindCheckbox("mirror");
+    bindCheckbox("rotate");
+    bindCheckbox("inputCSYS");
+    bindInput("design_scale", );
+    bindCheckbox("cutInsideFirst");
+    bindCheckbox("rotary");
+    bindCheckbox("comb_engrave");
+    bindCheckbox("comb_vector");
+    // settings tab
+    // raster tab
+    // trace tab
+
     upload_file_setup();
     // ensure all values are initialized
     for(var variable in state.listeners) {
@@ -291,6 +372,8 @@ function init_UI(){
             listener(state.variables[variable]);
         });
     }
+
+    addTabs([control, advanced, settings, raster, trace], [control_tab, advanced_tab, settings_tab, raster_tab, trace_tab])
 
     statusStream();
     setupCanvas();

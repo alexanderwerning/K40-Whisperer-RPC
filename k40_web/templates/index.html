@@ -1,8 +1,10 @@
 <!doctype html>
+
 <title>{% block title %}{% endblock %} - Flaskr</title>
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous"/>
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
 <script src="{{ url_for('static', filename='laser.js') }}"></script>
+
 <div class="container-fluid">
     <div class="row">
         <div class="col">
@@ -11,114 +13,266 @@
     </div>
     <div class="row">
         <div class="col-2">
-            <div class="row m-3">
-                File:<form id="file_select_form"><input class="form-control" id="file_select" type="file" accept="image/png, .jpg, .svg, .gcode"></form>
-            </div>
-            <div class="row m-3">
-                <button class="btn btn-primary" id="Upload_file" type="button">Upload file</button>
-            </div>
-            <div class="row m-3">
-                <button class="btn btn-primary" id="Reload_design" type="button">Reload file</button>
-            </div>
-            <div class="row m-3">
-                <button class="btn btn-primary" id="Initialize_Laser" type="button">Initialize Laser Cutter</button>
-            </div>
-            <div class="row m-3">
-                <button class="btn btn-primary" id="Unlock" type="button">Unlock Rail</button>
-            </div>
+            <ul class="nav nav-tabs" id="controllerTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link active" id="control_tab" data-bs-toggle="tab" data-bs-target="#control" type="button" role="tab" aria-controls="control" aria-selected="true">Control</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="advanced_tab" data-bs-toggle="tab" data-bs-target="#advanced" type="button" role="tab" aria-controls="advanced" aria-selected="false">Advanced</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="settings_tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab" aria-controls="settings" aria-selected="false">Settings</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="raster_tab" data-bs-toggle="tab" data-bs-target="#raster" type="button" role="tab" aria-controls="raster" aria-selected="false">Raster</button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="trace_tab" data-bs-toggle="tab" data-bs-target="#trace" type="button" role="tab" aria-controls="trace" aria-selected="false">Trace</button>
+                  </li>
+              </ul>
+            <div class="tab-content" id="controllerTabContent">
+                <div class="tab-pane fade show active" id="control" role="tabpanel" aria-labelledby="control_tab">
+                    <div class="row m-3">
+                        File:<form id="file_select_form"><input class="form-control" id="file_select" type="file" accept="image/png, .jpg, .svg, .gcode"></form>
+                    </div>
+                    <div class="row m-3">
+                        <button class="btn btn-primary" id="Upload_file" type="button">Upload file</button>
+                    </div>
+                    <div class="row m-3">
+                        <button class="btn btn-primary" id="Reload_design" type="button">Reload file</button>
+                    </div>
+                    <div class="row m-3">
+                        <button class="btn btn-primary" id="Initialize_Laser" type="button">Initialize Laser Cutter</button>
+                    </div>
+                    <div class="row m-3">
+                        <button class="btn btn-primary" id="Unlock" type="button">Unlock Rail</button>
+                    </div>
 
-            <div class="row m-3">
-                <div class="container">
-                    <div class="d-flex justify-content-center">
-                        <div class="p-1">
-                            <button class="btn btn-primary" id="Move_UL" type="button"><img src="/static/icons/UL.png" alt="┌" ></button>
-                        </div>
-                        <div class="p-1">
-                            <button class="btn btn-primary" id="Move_UC" type="button"><img src="/static/icons/UC.png" alt="┬" ></button>
-                        </div>
-                            <div class="p-1">
-                            <button class="btn btn-primary" id="Move_UR" type="button"><img src="/static/icons/UR.png" alt="┐" ></button>
+                    <div class="row m-3">
+                        <div class="container">
+                            <div class="d-flex justify-content-center">
+                                <div class="p-1">
+                                    <button class="btn btn-primary" id="Move_UL" type="button"><img src="/static/icons/UL.png" alt="┌" ></button>
+                                </div>
+                                <div class="p-1">
+                                    <button class="btn btn-primary" id="Move_UC" type="button"><img src="/static/icons/UC.png" alt="┬" ></button>
+                                </div>
+                                    <div class="p-1">
+                                    <button class="btn btn-primary" id="Move_UR" type="button"><img src="/static/icons/UR.png" alt="┐" ></button>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-center">
+                                <div class="p-1">
+                                    <button class="btn btn-primary" id="Move_CL" type="button"><img src="/static/icons/CL.png" alt="├"></button>
+                                </div>
+                                <div class="p-1">
+                                    <button class="btn btn-primary" id="Move_CC" type="button"><img src="/static/icons/CC.png" alt="┼"></button>
+                                </div>
+                                <div class="p-1">
+                                    <button class="btn btn-primary" id="Move_CR" type="button"><img src="/static/icons/CR.png" alt="┤"></button>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-center">
+                                <div class="p-1">
+                                    <button class="btn btn-primary" id="Move_LL" type="button"><img src="/static/icons/LL.png" alt="└"></button>
+                                </div>
+                                <div class="p-1">
+                                    <button class="btn btn-primary" id="Move_LC" type="button"><img src="/static/icons/LC.png" alt="┴"></button>
+                                </div>
+                                <div class="p-1">
+                                    <button class="btn btn-primary" id="Move_LR" type="button"><img src="/static/icons/LR.png" alt="┘"></button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="d-flex justify-content-center">
-                        <div class="p-1">
-                            <button class="btn btn-primary" id="Move_CL" type="button"><img src="/static/icons/CL.png" alt="├"></button>
-                        </div>
-                        <div class="p-1">
-                            <button class="btn btn-primary" id="Move_CC" type="button"><img src="/static/icons/CC.png" alt="┼"></button>
-                        </div>
-                        <div class="p-1">
-                            <button class="btn btn-primary" id="Move_CR" type="button"><img src="/static/icons/CR.png" alt="┤"></button>
+                    <div class="row m-3">
+                        <div class="container">
+                            <div class="d-flex justify-content-center">
+                                <div class="p-1">
+                                    <button class="btn btn-primary" id="Move_Up" type="button"><img src="/static/icons/up.png" alt="^" ></button>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-center">
+                                <div class="p-1">
+                                    <button class="btn btn-primary" id="Move_Left" type="button"><img src="/static/icons/left.png" alt="<"></button>
+                                </div>
+                                <div class="p-1">
+                                    <button class="btn btn-primary" id="Home" type="button"><img src="/static/icons/home.png" alt="h"></button>
+                                </div>
+                                <div class="p-1">
+                                    <button class="btn btn-primary" id="Move_Right" type="button"><img src="/static/icons/right.png" alt=">"></button>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-center">
+                                <div class="p-1">
+                                    <button class="btn btn-primary" id="Move_Down" type="button"><img src="/static/icons/down.png" alt="v"></button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="d-flex justify-content-center">
-                        <div class="p-1">
-                            <button class="btn btn-primary" id="Move_LL" type="button"><img src="/static/icons/LL.png" alt="└"></button>
-                        </div>
-                        <div class="p-1">
-                            <button class="btn btn-primary" id="Move_LC" type="button"><img src="/static/icons/LC.png" alt="┴"></button>
-                        </div>
-                        <div class="p-1">
-                            <button class="btn btn-primary" id="Move_LR" type="button"><img src="/static/icons/LR.png" alt="┘"></button>
+                    <div class="row m-3">
+                        <div class="container">
+                            <div class="row justify-content-end">
+                                <div class="col-4">
+                                    <label for="Reng_feed" class="form-label">mm/s</label>
+                                </div>
+                            </div>
+                            <div class="row pb-1">
+                                <div class="col-8">
+                                    <button class="btn btn-primary" id="Raster_Eng" type="button">Raster Engrave</button>
+                                </div>
+                                <div class="col-4">
+                                    <input id="Reng_feed" class="form-control" pattern="([0-9]*[.])?[0-9]+">
+                                </div>
+                            </div>
+                            <div class="row pb-1">
+                                <div class="col-8">
+                                    <button class="btn btn-primary" id="Vector_Eng" type="button">Vector Engrave</button>
+                                </div>
+                                <div class="col-4">
+                                    <input id="Veng_feed" class="form-control" pattern="([0-9]*[.])?[0-9]+">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-8 ">
+                                    <button class="btn btn-primary" id="Vector_Cut" type="button">Vector Cut</button>
+                                </div>
+                                <div class="col-4 ">
+                                    <input id="Vcut_feed" class="form-control" pattern="([0-9]*[.])?[0-9]+">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="row m-3">
-                <div class="container">
-                    <div class="d-flex justify-content-center">
-                        <div class="p-1">
-                            <button class="btn btn-primary" id="Move_Up" type="button"><img src="/static/icons/up.png" alt="^" ></button>
+                <div class="tab-pane fade" id="advanced" role="tabpanel" aria-labelledby="advanced_tab">
+                    <div class="container">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="" id="halftone">
+                            <label class="form-check-label" for="halftone">
+                              Halftone (Dither)
+                            </label>
                         </div>
-                    </div>
-                    <div class="d-flex justify-content-center">
-                        <div class="p-1">
-                            <button class="btn btn-primary" id="Move_Left" type="button"><img src="/static/icons/left.png" alt="<"></button>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="" id="invert">
+                            <label class="form-check-label" for="invert">
+                              Invert Raster Color
+                            </label>
                         </div>
-                        <div class="p-1">
-                            <button class="btn btn-primary" id="Home" type="button"><img src="/static/icons/home.png" alt="h"></button>
+                        <li class="divider"></li>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="" id="mirror">
+                            <label class="form-check-label" for="mirror">
+                              Mirror Design
+                            </label>
                         </div>
-                        <div class="p-1">
-                            <button class="btn btn-primary" id="Move_Right" type="button"><img src="/static/icons/right.png" alt=">"></button>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="" id="rotate">
+                            <label class="form-check-label" for="rotate">
+                              Rotate Design
+                            </label>
                         </div>
-                    </div>
-                    <div class="d-flex justify-content-center">
-                        <div class="p-1">
-                            <button class="btn btn-primary" id="Move_Down" type="button"><img src="/static/icons/down.png" alt="v"></button>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="" id="inputCSYS" disabled>
+                            <label class="form-check-label" for="inputCSYS">
+                              Use Input CSYS
+                            </label>
+                        </div>
+                        <div class="col-8">
+                            <label class="form-label">Design Scale</label>
+                        </div>
+                        <div class="col-4">
+                            <input id="design_scale" class="form-control" pattern="([0-9]*[.])?[0-9]+">
+                        </div>
+                        <li class="divider"></li>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="" id="cutInsideFirst">
+                            <label class="form-check-label" for="cutInsideFirst">
+                              Cut Inside First
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="" id="rotary">
+                            <label class="form-check-label" for="rotary">
+                              Use Rotary Settings
+                            </label>
+                        </div>
+                        <li class="divider"></li>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="" id="comb_engrave">
+                            <label class="form-check-label" for="comb_engrave">
+                              Group Engrave Tasks
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="" id="comb_vector">
+                            <label class="form-check-label" for="comb_vector">
+                              Group Vector Tasks
+                            </label>
+                        </div>
+                        <li class="divider"></li>
+                        <div class="row pb-1">
+                            <div class="col-8">
+                                <label class="form-label">Raster Engraving Passes</label>
+                            </div>
+                            <div class="col-4">
+                                <input id="Reng_passes" class="form-control" pattern="[0-9]*">
+                            </div>
+                        </div>
+                        <div class="row pb-1">
+                            <div class="col-8">
+                                <label class="form-label">Vector Engraving Passes</label>
+                            </div>
+                            <div class="col-4">
+                                <input id="Veng_passes" class="form-control" pattern="[0-9]*">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-8 ">
+                                <label class="form-label">Vector Cut Passes</label>
+                            </div>
+                            <div class="col-4 ">
+                                <input id="Vcut_passes" class="form-control" pattern="[0-9]*">
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="row m-3">
-                <div class="container">
-                    <div class="row justify-content-end">
-                        <div class="col-4">
-                            <label for="Reng_feed" class="form-label">mm/s</label>
+                
+                <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings_tab"></div>
+                <div class="tab-pane fade" id="raster" role="tabpanel" aria-labelledby="raster_tab">
+                    <div class="container">
+                        <div class="col">
+                            <label class="form-label">Scanline Step (in?)</label>
+                            <input id="rast_step" class="form-control" pattern="([0-9]*[.])?[0-9]+">
                         </div>
+                        <div class="col">
+                            <label class="form-label">Halftone Resolution (dpi)</label>
+                            <input id="ht_size" class="form-control" pattern="([0-9]*[.])?[0-9]+">
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="" id="engraveUp">
+                            <label class="form-check-label" for="engraveUp">
+                            Engrave Bottom Up
+                            </label>
+                        </div>
+                        bezier:
+                        black slope, white slope, transition + graph canvas
                     </div>
-                    <div class="row pb-1">
-                        <div class="col-8">
-                            <button class="btn btn-primary" id="Raster_Eng" type="button">Raster Engrave</button>
-                        </div>
-                        <div class="col-4">
-                            <input id="Reng_feed" class="form-control" pattern="([0-9]*[.])?[0-9]+">
-                        </div>
+                </div>
+                <div class="tab-pane fade" id="trace" role="tabpanel" aria-labelledby="trace_tab">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" id="trace_w_laser">
+                        <label class="form-check-label" for="trace_w_laser">
+                        Laser on during Trace
+                        </label>
                     </div>
-                    <div class="row pb-1">
-                        <div class="col-8">
-                            <button class="btn btn-primary" id="Vector_Eng" type="button">Vector Engrave</button>
-                        </div>
-                        <div class="col-4">
-                            <input id="Veng_feed" class="form-control" pattern="([0-9]*[.])?[0-9]+">
-                        </div>
+                    <div class="col">
+                        <label class="form-label">Gap between Design and Trace</label>
+                        <input id="trace_gap" class="form-control" pattern="([0-9]*[.])?[0-9]+">
                     </div>
-                    <div class="row">
-                        <div class="col-8 ">
-                            <button class="btn btn-primary" id="Vector_Cut" type="button">Vector Cut</button>
-                        </div>
-                        <div class="col-4 ">
-                            <input id="Vcut_feed" class="form-control" pattern="([0-9]*[.])?[0-9]+">
-                        </div>
+                    <div class="col">
+                        <button class="btn btn-primary" id="Trace_Eng" type="button">Trace Boundary with Laser Head</button>
+                        <input id="trace_speed" class="form-control" pattern="([0-9]*[.])?[0-9]+">
+                        <label class="form-label">mm/s</label>
                     </div>
                 </div>
             </div>
@@ -130,7 +284,6 @@
     <div class="row">
         <div class="col">
             <div id=statusbar>
-                statusbar self.statusMessage
             </div>
         </div>
     </div>

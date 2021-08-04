@@ -15,7 +15,7 @@ def work(taskQueue, statusQueue):
 
     def encode_msg(msg, value=None, msg_type=0):
         data = {"content": msg}
-        type_tag = {-1: "update", 0:"clear", 1:"status", 2:"information", 3:"warning", 4:"error", 5:"fieldClear", 6:"fieldWarning", 7:"FieldError"}
+        type_tag = {-1: "update", 0:"clear", 1:"status", 2:"information", 3:"warning", 4:"error", 5:"fieldClear", 6:"fieldWarning", 7:"fieldError"}
         data["type"] = type_tag[msg_type]
         if value is not None:
             if type(value) is bytes:
@@ -23,7 +23,7 @@ def work(taskQueue, statusQueue):
             else:
                 data["value"] = value
 
-        print("sent: ", data)
+        print("sent: ", msg)
         send_msg(json.dumps(data))
 
     class JSON_Reporter(Reporter):
@@ -85,10 +85,10 @@ def work(taskQueue, statusQueue):
     }
 
     commands_with_values = {
-        "Entry_Reng_feed_Callback": service.Entry_Reng_feed_Callback,
-        "Entry_Veng_feed_Callback": service.Entry_Veng_feed_Callback,
-        "Entry_Vcut_feed_Callback": service.Entry_Vcut_feed_Callback,
-        "Entry_Step_Callback": service.Entry_Step_Callback,
+        # "Entry_Reng_feed_Callback": service.Entry_Reng_feed_Callback,
+        # "Entry_Veng_feed_Callback": service.Entry_Veng_feed_Callback,
+        # "Entry_Vcut_feed_Callback": service.Entry_Vcut_feed_Callback,
+        # "Entry_Step_Callback": service.Entry_Step_Callback,
         "mouse_click": service.mouse_click,
         "Open_design": service.Open_design
     }
@@ -96,7 +96,8 @@ def work(taskQueue, statusQueue):
 
     '''
     var_names_strings = ["include_Reng", "include_Veng", "include_Vcut", "include_Gcde",
-                "include_Time", "include_Trace", "halftone", "negate", "HomeUR", "inputCSYS",
+                "include_Time", "include_Trace",
+                "halftone", "negate", "HomeUR", "inputCSYS",
                 "mirror", "rotate", "engraveUP", "init_home", "post_home", "post_beep",
                 "post_disp", "post_exec", "pre_pr_crc", "inside_first", "comb_engrave",
                 "comb_vector", "zoom2image", "rotary", "trace_w_laser", "board_name",
@@ -128,7 +129,7 @@ def work(taskQueue, statusQueue):
             if cmd in commands:
                 commands[cmd]()
             elif cmd in commands_with_values:
-                value = message["value"]
+                value = message["parameter"]
                 print(value)
                 if type(value) is list:
                     commands_with_values[cmd](*value)
@@ -140,11 +141,10 @@ def work(taskQueue, statusQueue):
             elif cmd == "set":
                 param_name = message["key"]
                 param_value = message["value"]
-                setattr(service, param_name, param_value)
-                JSON_Reporter.data(param_name, getattr(service, param_name))
+                service.set_var_with_check(param_name, param_value)
+                #JSON_Reporter.data(param_name, getattr(service, param_name)) # this should be handled by set var function
             else:
                 print("sorry i did not understand ", body)
 
-            print(" [x] Done")
         except Empty as e:
             pass
