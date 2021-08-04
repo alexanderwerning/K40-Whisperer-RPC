@@ -339,7 +339,7 @@ class Laser_Service():
             return 3     # Value not a number
         vfactor = (25.4/60.0)*self.units.velocity_scale()
         low_limit = low_speed_limit*vfactor
-        if new_value < low_limit and (equal or new_value == low_limit):
+        if new_value < low_limit or (not equal and new_value == low_limit):
             self.reporter.error(f"{name} should be greater than {'or equal to' if equal else ''} {low_limit}")
             return 2  # Value is invalid number
         return 0         # Value is a valid number
@@ -347,7 +347,7 @@ class Laser_Service():
     def check_larger_than(self, value, name, limit=0, equal=True):
         if not isinstance(value, Number):
             return 3 # Value not a number
-        if value <= limit and (not equal or value == limit):
+        if value < limit or (not equal and value == limit):
             self.reporter.error(f"{name} should be greater than {'or equal to' if equal else ''} {limit}")
             return 2  # Value is invalid number
         return 0         # Value is a valid number
@@ -355,8 +355,8 @@ class Laser_Service():
     def check_between(self, value, name, lower_limit, upper_limit, include_lower=True, include_upper=True):
         if not isinstance(value, Number):
             return 3 # Value not a number
-        if (value < lower_limit and (include_lower or value == lower_limit)
-            or value > upper_limit and (include_upper or value == upper_limit)):
+        if (value < lower_limit or (not include_lower and value == lower_limit)
+            or value > upper_limit or (not include_upper and value == upper_limit)):
             self.reporter.error(f"{name} should be between {lower_limit} and {upper_limit}")
             return 2  # Value is invalid number
         return 0         # Value is a valid number
@@ -392,9 +392,10 @@ class Laser_Service():
     def Entry_Rstep_Callback(self, value):
         check_result = self.check_between(value, "Step", 0, 0.063, include_lower=False)
         if check_result == 0:
-            self.self.rast_step = value
+            self.rast_step = value
+            self.reporter.data("Step", self.rast_step)
         self.design.RengData.reset_path()
-        self.entry_set("Rstep", self.Entry_Rstep_Check())
+        self.entry_set("Rstep", check_result)
 
     def Entry_bezier_settings_callback(self, value):
         weight, m1, m2 = value
@@ -412,7 +413,8 @@ class Laser_Service():
     def Entry_Ink_Timeout_Callback(self, value):
         check_result = self.check_larger_than(value, "Timeout")
         if check_result == 0:
-            self.self.svg_settings.ink_timeout = value
+            self.svg_settings.ink_timeout = value
+            self.reporter.data("ink_timeout", self.svg_settings.ink_timeout)
         self.entry_set("Ink_Timeout", check_result)
 
     def Entry_Timeout_Callback(self, value):
@@ -442,6 +444,7 @@ class Laser_Service():
         check_result = self.check_larger_than(h, "Height", equal=False)
         if check_result == 0:
             self.laser_bed_size.y = h
+        self.reporter.data("laser_bed_size", self.laser_bed_size.aslist())
         self.entry_set("Laser_Area_Height", check_result)
         self.Reset_RasterPath_and_Update_Time()
 
@@ -462,6 +465,7 @@ class Laser_Service():
         check_result = self.check_larger_than(r, "Rotary scale factor", equal=False)
         if check_result == 0:
             self.laser_scale.r = r
+        self.reporter.data("laser_scale", self.laser_scale.aslist())
         self.entry_set("Laser_R_Scale", check_result)
         self.Reset_RasterPath_and_Update_Time()
 
@@ -469,42 +473,49 @@ class Laser_Service():
         check_result = self.check_velocity(value, 1, "Rapid feed")
         if check_result == 0:
             self.rapid_feed = value
+            self.reporter.data("rapid_feed", self.rapid_feed)
         self.entry_set("Laser_Rapid_Feed", check_result)
 
     def Entry_Reng_passes_Callback(self, value):
         check_result = self.check_larger_than(value, "Number of passes", limit=1)
         if check_result == 0:
             self.Reng_passes = int(value)
+            self.reporter.data("Reng_passes", self.Reng_passes)
         self.entry_set("Reng_passes", check_result)
 
     def Entry_Veng_passes_Callback(self, value):
         check_result = self.check_larger_than(value, "Number of passes", limit=1)
         if check_result == 0:
             self.Veng_passes = int(value)
+            self.reporter.data("Veng_passes", self.Veng_passes)
         self.entry_set("Veng_passes", check_result)
 
     def Entry_Vcut_passes_Callback(self, value):
         check_result = self.check_larger_than(value, "Number of passes", limit=1)
         if check_result == 0:
             self.Vcut_passes = int(value)
+            self.reporter.data("Vcut_passes", self.Vcut_passes)
         self.entry_set("Vcut_passes", check_result)
 
     def Entry_Gcde_passes_Callback(self, value):
         check_result = self.check_larger_than(value, "Number of passes", limit=1)
         if check_result == 0:
             self.Gcde_passes = int(value)
+            self.reporter.data("Gcde_passes", self.Gcde_passes)
         self.entry_set("Gcde_passes", check_result)
 
     def Entry_Trace_Gap_Callback(self, value):
         check_result = 0 if isinstance(value, Number) else 3
         if check_result == 0:
             self.trace_gap = int(value)
+            self.reporter.data("trace_gap", self.trace_gap)
         self.entry_set("Trace_Gap", check_result)
 
     def Entry_Trace_Speed_Callback(self, value):
         check_result = self.check_velocity(value, self.min_vector_speed, "Feed Rate")
         if check_result == 0:
             self.trace_speed = value
+            self.reporter.data("trace_speed", self.trace_speed)
         self.entry_set("Trace_Speed", check_result)
 
     def Entry_Inkscape_Path_Callback(self, inkscape_path):

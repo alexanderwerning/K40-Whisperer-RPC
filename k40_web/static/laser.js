@@ -21,7 +21,9 @@ state = {
     "design_scale": 1.0,
     "inside_first": true,
     "rotary": false,
-
+    "Reng_passes": 1,
+    "Veng_passes": 1,
+    "Vcut_passes": 1,
     },
     listeners: {},
     addListener: function (variable, listener){
@@ -357,10 +359,14 @@ function init_UI(){
     bindCheckbox("rotate");
     bindCheckbox("inputCSYS");
     bindInput("design_scale", );
-    bindCheckbox("cutInsideFirst");
+    bindCheckbox("inside_first");
     bindCheckbox("rotary");
     bindCheckbox("comb_engrave");
     bindCheckbox("comb_vector");
+
+    bindInput("Reng_passes", true);
+    bindInput("Veng_passes", true);
+    bindInput("Vcut_passes", true);
     // settings tab
     // raster tab
     // trace tab
