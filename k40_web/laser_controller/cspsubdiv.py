@@ -37,4 +37,3 @@ def subdiv(sp, flat, i=1):
             p = [one[2], one[3], two[1]]
             sp[i:1] = [p]
 
-# vim: expandtab shiftwidth=4 tabstop=8 softtabstop=4 fileencoding=utf-8 textwidth=99

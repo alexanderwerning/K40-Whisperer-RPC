@@ -31,58 +31,45 @@ class Point:
     precision = 5
 
     def __init__(self, x, y):
-        self.__coordinates = {'x': float(x), 'y': float(y)}
-
-    def __getitem__(self, key):
-        return self.__coordinates[key]
-
-    def __setitem__(self, key, value):
-        self.__coordinates[key] = float(value)
-
-    def __repr__(self):
-        return '(%s, %s)' % (round(self['x'], self.precision), round(self['y'], self.precision))
+        self.x = float(x)
+        self.y = float(y)
 
     def copy(self):
-        return Point(self['x'], self['y'])
+        return Point(self.x, self.y)
 
     def translate(self, x, y):
-        self['x'] += x
-        self['y'] += y
+        self.x += x
+        self.y += y
 
     def move(self, x, y):
-        self['x'] = float(x)
-        self['y'] = float(y)
+        self.x = float(x)
+        self.y = float(y)
 
 
 class Segment:
     def __init__(self, e0, e1):
-        self.__endpoints = [e0, e1]
-
-    def __getitem__(self, key):
-        return self.__endpoints[key]
-
-    def __setitem__(self, key, value):
-        self.__endpoints[key] = value
+        self.e0 = e0
+        self.e1 = e1
 
     def __repr__(self):
         return repr(self.__endpoints)
 
     def copy(self):
-        return Segment(self[0], self[1])
+        return Segment(self.e0, self.e1)
 
     def translate(self, x, y):
-        self[0].translate(x, y)
-        self[1].translate(x, y)
+        self.e0.translate(x, y)
+        self.e1.translate(x, y)
 
     def move(self, e0, e1):
-        self[0] = e0
-        self[1] = e1
+        self.e0 = e0
+        self.e1 = e1
 
     def delta_x(self):
-        return self[1]['x'] - self[0]['x']
+        return self.e1.x - self.e0.x
 
     def delta_y(self):
-        return self[1]['y'] - self[0]['y']
+        return self.e1.y - self.e0.y
     # alias functions
     run = delta_x
     rise = delta_y
@@ -94,25 +81,25 @@ class Segment:
 
     def intercept(self):
         if self.delta_x() != 0:
-            return self[1]['y'] - (self[0]['x'] * self.slope())
+            return self.e1.y - (self.e0.x * self.slope())
         return NaN
 
     def distanceToPoint(self, p):
-        s2 = Segment(self[0], p)
+        s2 = Segment(self.e0, p)
         c1 = dot(s2, self)
         if c1 <= 0:
-            return Segment(p, self[0]).length()
+            return Segment(p, self.e0).length()
         c2 = dot(self, self)
         if c2 <= c1:
-            return Segment(p, self[1]).length()
+            return Segment(p, self.e1).length()
         return self.perpDistanceToPoint(p)
 
     def perpDistanceToPoint(self, p):
         len = self.length()
         if len == 0:
             return NaN
-        return math.fabs(((self[1]['x'] - self[0]['x']) * (self[0]['y'] - p['y'])) -
-                         ((self[0]['x'] - p['x']) * (self[1]['y'] - self[0]['y']))) / len
+        return math.fabs(((self.e1.x - self.e0.x) * (self.e0.y - p.y)) -
+                         ((self.e0.x - p.x) * (self.e1.y - self.e0.y))) / len
 
     def angle(self):
         return math.pi * (math.atan2(self.delta_y(), self.delta_x())) / 180
@@ -124,34 +111,34 @@ class Segment:
         if self.length() == 0:
             return Point(NaN, NaN)
         ratio = len / self.length()
-        x = self[0]['x'] + (ratio * self.delta_x())
-        y = self[0]['y'] + (ratio * self.delta_y())
+        x = self.e0.x + (ratio * self.delta_x())
+        y = self.e0.y + (ratio * self.delta_y())
         return Point(x, y)
 
     def pointAtRatio(self, ratio):
         if self.length() == 0:
             return Point(NaN, NaN)
-        x = self[0]['x'] + (ratio * self.delta_x())
-        y = self[0]['y'] + (ratio * self.delta_y())
+        x = self.e0.x + (ratio * self.delta_x())
+        y = self.e0.y + (ratio * self.delta_y())
         return Point(x, y)
 
     def createParallel(self, p):
-        return Segment(Point(p['x'] + self.delta_x(), p['y'] + self.delta_y()), p)
+        return Segment(Point(p.x + self.delta_x(), p.y + self.delta_y()), p)
 
     def intersect(self, s):
         return intersectSegments(self, s)
 
 
 def intersectSegments(s1, s2):
-    x1 = s1[0]['x']
-    x2 = s1[1]['x']
-    x3 = s2[0]['x']
-    x4 = s2[1]['x']
+    x1 = s1[0].x
+    x2 = s1[1].x
+    x3 = s2[0].x
+    x4 = s2[1].x
 
-    y1 = s1[0]['y']
-    y2 = s1[1]['y']
-    y3 = s2[0]['y']
-    y4 = s2[1]['y']
+    y1 = s1[0].y
+    y2 = s1[1].y
+    y3 = s2[0].y
+    y4 = s2[1].y
 
     denom = ((y4 - y3) * (x2 - x1)) - ((x4 - x3) * (y2 - y1))
     num1 = ((x4 - x3) * (y1 - y3)) - ((y4 - y3) * (x1 - x3))
@@ -168,6 +155,3 @@ def intersectSegments(s1, s2):
 
 def dot(s1, s2):
     return s1.delta_x() * s2.delta_x() + s1.delta_y() * s2.delta_y()
-
-
-# vim: expandtab shiftwidth=4 tabstop=8 softtabstop=4 fileencoding=utf-8 textwidth=99

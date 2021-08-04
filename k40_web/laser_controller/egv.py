@@ -20,11 +20,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 '''
 
 import sys
-import struct
-import os
-from shutil import copyfile
+from k40_web.laser_controller.reporter import Reporter
 from math import *
-from k40_web.laser_controller.interpolate import interpolate
 from time import time
 from k40_web.laser_controller.LaserSpeed import LaserSpeed
 
@@ -263,9 +260,6 @@ class egv:
             self.write(80)  # P
 
     #######################################################################
-    def none_function(self, dummy=None):
-        # Don't delete this function (used in make_egv_data)
-        pass
 
     def ecoord_adj(self, ecoords_adj_in, scale, FlipXoffset):
         if FlipXoffset > 0:
@@ -296,7 +290,7 @@ class egv:
             stop_calc = []
             stop_calc.append(0)
         if reporter == None:
-            reporter = self.none_function
+            reporter = Reporter
         ########################################################
         if units == 'in':
             scale = 1000.0
