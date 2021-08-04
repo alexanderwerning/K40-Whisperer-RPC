@@ -288,27 +288,27 @@ function setupCanvas(){
 }
 
 function setupBezierCanvas(){
-    canvas = document.getElementById("bezierCanvas");
-    w = canvas.width;
-    h = canvas.height;
+    var bezier_canvas = document.getElementById("bezierCanvas");
+    var bw = bezier_canvas.width;
+    var bh = bezier_canvas.height;
 
-    ctx = canvas.getContext("2d");
+    var bctx = bezier_canvas.getContext("2d");
 
     function redraw(){
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        bctx.clearRect(0, 0, bezier_canvas.width, bezier_canvas.height);
         
-        ctx.strokeStyle = "#000000";
-        ctx.beginPath();
+        bctx.strokeStyle = "#000000";
+        bctx.beginPath();
         var bezier_x = state.variables["bezier_plot"]["x"];
         var bezier_y = state.variables["bezier_plot"]["y"];
         
-        ctx.moveTo(w*bezier_x[0]/255, h-h*bezier_y[0]/255);
+        bctx.moveTo(bw*bezier_x[0]/255, bh-bh*bezier_y[0]/255);
         for(var i = 0; i < bezier_x.length; i++){
-            ctx.lineTo(w*bezier_x[i]/255, h-h*bezier_y[i]/255);
+            bctx.lineTo(bw*bezier_x[i]/255, bh-bh*bezier_y[i]/255);
         }
-        ctx.moveTo(w*bezier_x[0]/255, h-h*bezier_y[0]/255);
-        ctx.closePath();
-        ctx.stroke();
+        bctx.moveTo(bw*bezier_x[0]/255, bh-bh*bezier_y[0]/255);
+        bctx.closePath();
+        bctx.stroke();
     }
     
     state.addListener("bezier_plot", redraw);
@@ -410,6 +410,11 @@ function init_UI(){
     bindInput("bezier_m2", true);
     bindInput("bezier_weight", true);
     // trace tab
+    bindCheckbox("trace_w_laser");
+    bindInput("trace_gap", true);
+    bindButton("Trace_Eng");
+    bindInput("trace_speed", true);
+    
 
     upload_file_setup();
     // ensure all values are initialized
