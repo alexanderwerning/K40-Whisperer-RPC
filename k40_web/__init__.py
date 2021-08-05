@@ -8,51 +8,35 @@ from flask import request
 from werkzeug.utils import secure_filename
 from pathlib import Path
 
-from k40_web.worker import work
 
-from queue import Queue, Empty
-from threading import Thread
+from zmq import Context, PUB, SUB, SUBSCRIBE
+context = Context()
 
-statusQueue = Queue(10)
-taskQueue = Queue(10)
-
-class WorkerThread (Thread):
-    def __init__(self):
-        Thread.__init__(self)
-    def run(self):
-        print ("Starting " + self.name)
-        try:
-            work(taskQueue, statusQueue)
-        except KeyboardInterrupt as e:
-            raise e
-        print ("Exiting " + self.name)
+task_socket = context.socket(PUB)
+task_socket.connect("tcp://localhost:6660")
+status_socket = context.socket(PUB)
+status_socket.connect("tcp://localhost:5556")
 
 def event_stream():
+    status_socket = context.socket(SUB)
+    status_socket.setsockopt(SUBSCRIBE, b"")
+    status_socket.connect("tcp://localhost:5556")
     while True:
-        try:
-            text = statusQueue.get(timeout=1)
-            yield f"data: {text}\n\n"
-
-        except Empty:
-            pass
+        text = status_socket.recv_string()
+        yield f"data: {text}\n\n"
 
 def send_task(msg):
-    taskQueue.put(msg)
+    task_socket.send_string(msg)
 
 def send_status(msg):
-    statusQueue.put(msg)
+    status_socket.send_string(msg)
 '''
 [("SVG Files ", "*.svg"),
-    default_types,
     ("G-Code Files ", ("*.ngc",
                         "*.gcode", "*.g", "*.tap")),
     ("DXF Files ", "*.dxf"),
     ("All Files ", "*"),
-    ("Design Files ", ("*.svg", "*.dxf"))],
-
-
-        design_types = ("Design Files", ("*.svg", "*.dxf"))
-        gcode_types = ("G-Code Files", ("*.ngc", "*.gcode", "*.g", "*.tap"))
+   #// ("Design Files ", ("*.svg", "*.dxf"))],
 '''
 ALLOWED_EXTENSIONS = {"svg", "gcode", "png", "jpg"}
 def allowed_file(filename):
@@ -69,8 +53,8 @@ def create_app(test_config=None):
     if __name__ == "__main__":
         app.run(threaded=True)
     
-    mythread = WorkerThread()
-    mythread.start()
+    # mythread = WorkerThread()
+    # mythread.start()
     
     UPLOAD_FOLDER = './uploads'
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
