@@ -21,7 +21,7 @@ from PIL import ImageOps
 import PIL
 from time import time
 import os
-from k40_web.laser_controller.utils import format_time, get_raster_step_1000in, generate_bezier, ecoords2lines, make_raster_coords, scale_vector_coords, make_trace_path, optimize_paths, mirror_rotate_vector_coords
+from k40_web.laser_controller.utils import format_time, inch2thou, generate_bezier, ecoords2lines, make_raster_coords, scale_vector_coords, make_trace_path, optimize_paths, mirror_rotate_vector_coords
 from k40_web.laser_controller.nano_library import K40_CLASS
 from k40_web.laser_controller.egv import egv
 from k40_web.laser_controller.ecoords import ECoord
@@ -34,7 +34,7 @@ from numbers import Number
 
 from pathlib import Path
 from k40_web.laser_controller.filereader import Open_SVG, Open_DXF, Open_G_Code
-from k40_web.laser_controller.util_classes import Position, Dimensions, DesignBounds, Scale, DesignTransform, DisplayUnits, BezierSettings, SVG_Settings, Design
+from k40_web.laser_controller.util_classes import Position, Dimensions, DesignBounds, Scale, DesignTransform, DisplayUnits, BezierSettings, SVG_Settings, Design, StoppedState
 
 version = '0.52'
 title_text = "K40 Whisperer V"+version
@@ -86,7 +86,7 @@ class Laser_Service():
     def init_vars(self):
         self.loadConfig()
         self.initComplete = 0
-        self.stop = [True]
+        self.stop = StoppedState()
 
         self.k40 = None
         self.run_time = 0
@@ -218,7 +218,7 @@ class Laser_Service():
         self.zoom2image = value==True
         self.reporter.data("zoom2image", self.zoom2image)
 
-    def set_is_otary(self, value):
+    def set_is_rotary(self, value):
         self.is_rotary = value==True
         self.reporter.data("is_rotary", self.is_rotary)
 
@@ -677,7 +677,7 @@ class Laser_Service():
             operation_type="Raster_Eng-Vector_Eng-Vector_Cut")
 
     def menu_File_save_EGV(self, operation_type=None, default_name="out.EGV"):
-        self.stop[0] = False
+        self.stop.reset()
         if DEBUG:
             start = time()
         fileName, fileExtension = os.path.splitext(self.DESIGN_FILE)
@@ -712,7 +712,7 @@ class Laser_Service():
             self.EGV_FILE = filename
         if DEBUG:
             print(("time = %d seconds" % (int(time()-start))))
-        self.stop[0] = True
+        self.stop.set()
 
     def menu_File_Open_EGV(self):
         init_dir = os.path.dirname(self.DESIGN_FILE)
@@ -727,7 +727,7 @@ class Laser_Service():
             self.EGV_Send_Window(fileselect)
 
     def Open_EGV(self, filemname, n_passes=1):
-        self.stop[0] = False
+        self.stop.reset()
         EGV_data = []
         value1 = ""
         value2 = ""
@@ -804,7 +804,7 @@ class Laser_Service():
         dxmils = -(x_end_mils - x_start_mils)
         dymils = y_end_mils - y_start_mils
         self.Send_Rapid_Move(dxmils, dxmils)
-        self.stop[0] = True
+        self.stop.set()
 
     #####################################################################
     def make_raster_coords(self):
@@ -860,34 +860,34 @@ class Laser_Service():
             and Ynew >= -self.laser_bed_size.y-.001):
             self.move_head_window_temporary(Position(x_offset, -y_offset))
 
-    def Move_UL(self, dummy=None):
+    def Move_UL(self):
         self.Move_in_design_space(0, 0)
 
-    def Move_UC(self, dummy=None):
+    def Move_UC(self):
         self.Move_in_design_space(0.5, 0)
 
-    def Move_UR(self, dummy=None):
+    def Move_UR(self):
         self.Move_in_design_space(1, 0)
 
-    def Move_CL(self, dummy=None):
+    def Move_CL(self):
         self.Move_in_design_space(0, 0.5)
 
-    def Move_CC(self, dummy=None):
+    def Move_CC(self):
         self.Move_in_design_space(0.5, 0.5)
 
-    def Move_CR(self, dummy=None):
+    def Move_CR(self):
         self.Move_in_design_space(1, 0.5)
 
-    def Move_LL(self, dummy=None):
+    def Move_LL(self):
         self.Move_in_design_space(0, 1)
 
-    def Move_LC(self, dummy=None):
+    def Move_LC(self):
         self.Move_in_design_space(0.5, 1)
 
-    def Move_LR(self, dummy=None):
+    def Move_LR(self):
         self.Move_in_design_space(1, 1)
 
-    def Move_Arbitrary(self, MoveX, MoveY, dummy=None):
+    def Move_Arbitrary(self, MoveX, MoveY):
         if self.GUI_Disabled:
             self.reporter.status("Busy")
             return
@@ -912,30 +912,30 @@ class Laser_Service():
             dy_inches = round(dy/25.4,3)
         self.Move_Arbitrary(dx_inches, dy_inches)
 
-    def Move_Arb_Right(self, dummy=None):
+    def Move_Arb_Right(self):
         self.Move_Arb_Step(self.jog_step, 0)
 
-    def Move_Arb_Left(self, dummy=None):
+    def Move_Arb_Left(self):
         self.Move_Arb_Step(-self.jog_step, 0)
 
-    def Move_Arb_Up(self, dummy=None):
+    def Move_Arb_Up(self):
         self.Move_Arb_Step(0, self.jog_step)
 
-    def Move_Arb_Down(self, dummy=None):
+    def Move_Arb_Down(self):
         self.Move_Arb_Step(0, -self.jog_step)
 
     ####################################################
 
-    def Move_Right(self, dummy=None):
+    def Move_Right(self):
         self.Rapid_Move(self.jog_step, 0)
 
-    def Move_Left(self, dummy=None):
+    def Move_Left(self):
         self.Rapid_Move(-self.jog_step, 0)
 
-    def Move_Up(self, dummy=None):
+    def Move_Up(self):
         self.Rapid_Move(0, self.jog_step)
 
-    def Move_Down(self, dummy=None):
+    def Move_Down(self):
         self.Rapid_Move(0, -self.jog_step)
 
     def Rapid_Move(self, dx, dy):
@@ -1002,14 +1002,14 @@ class Laser_Service():
     def slow_jog(self, dxmils, dymils):
         if int(dxmils) == 0 and int(dymils) == 0:
             return
-        self.stop[0] = False
+        self.stop.reset()
         Rapid_data = []
         Rapid_inst = egv(target=lambda s: Rapid_data.append(s))
         Rapid_feed = float(self.rapid_feed)/self.units.velocity_scale()
         Rapid_inst.make_egv_rapid(
             dxmils, dymils, Feed=Rapid_feed, board_name=self.board_name)
         self.send_egv_data(Rapid_data, 1, None)
-        self.stop[0] = True
+        self.stop.set()
 
     def Vector_Cut(self, output_filename=None):
         self.Prepare_for_laser_run("Vector Cut: Processing Vector Data.")
@@ -1106,15 +1106,15 @@ class Laser_Service():
         self.Finish_Job()
 
     def Prepare_for_laser_run(self, msg):
-        self.stop[0] = False
+        self.stop.reset()
         self.move_head_window_temporary(Position(0, 0))
         self.set_gui("disabled")
         self.reporter.information(msg)
         #self.master.update()
 
-    def Finish_Job(self, event=None):
+    def Finish_Job(self):
         self.set_gui("normal")
-        self.stop[0] = True
+        self.stop.set()
         if self.post_home:
             self.Unlock()
 
@@ -1183,7 +1183,7 @@ class Laser_Service():
             Vector_Cut_data = []
             G_code_Cut_data = []
 
-            if (operation_type.find("Vector_Cut") > -1) and (self.design.VcutData.ecoords != []):
+            if (operation_type.find("Vector_Cut") > -1) and (self.design.VcutData.ecoords != []) and not self.stop:
                 Feed_Rate = float(self.Vcut_feed)*feed_factor
                 self.reporter.status("Vector Cut: Determining Cut Order....")
                 #self.master.update()
@@ -1205,6 +1205,7 @@ class Laser_Service():
                     Vcut_coords,
                     startX=startx,
                     startY=starty,
+                    units="mm", # mm is internal unit # self.units.length_unit(),
                     Feed=Feed_Rate,
                     board_name=self.board_name,
                     Raster_step=0,
@@ -1215,7 +1216,7 @@ class Laser_Service():
                     use_laser=True
                 )
 
-            if (operation_type.find("Vector_Eng") > -1) and (self.design.VengData.ecoords != []):
+            if (operation_type.find("Vector_Eng") > -1) and (self.design.VengData.ecoords != []) and not self.stop:
                 Feed_Rate = float(self.Veng_feed)*feed_factor
                 self.reporter.status(
                     "Vector Engrave: Determining Cut Order....")
@@ -1237,6 +1238,7 @@ class Laser_Service():
                     Veng_coords,
                     startX=startx,
                     startY=starty,
+                    units="mm",
                     Feed=Feed_Rate,
                     board_name=self.board_name,
                     Raster_step=0,
@@ -1247,17 +1249,17 @@ class Laser_Service():
                     use_laser=True
                 )
 
-            if (operation_type.find("Trace_Eng") > -1) and (self.trace_coords != []):
+            if (operation_type.find("Trace_Eng") > -1) and (self.trace_coords != []) and not self.stop:
                 Feed_Rate = float(self.trace_speed)*feed_factor
                 laser_on = self.trace_w_laser
                 self.reporter.status("Generating EGV data...")
-                #self.master.update()
                 Trace_Eng_egv_inst = egv(
                     target=lambda s: Trace_Eng_data.append(s))
                 Trace_Eng_egv_inst.make_egv_data(
                     self.trace_coords,
                     startX=startx,
                     startY=starty,
+                    units="mm",
                     Feed=Feed_Rate,
                     board_name=self.board_name,
                     Raster_step=0,
@@ -1268,9 +1270,9 @@ class Laser_Service():
                     use_laser=laser_on
                 )
 
-            if (operation_type.find("Raster_Eng") > -1) and (self.design.RengData.ecoords != []):
+            if (operation_type.find("Raster_Eng") > -1) and (self.design.RengData.ecoords != []) and not self.stop:
                 Feed_Rate = self.Reng_feed*feed_factor
-                Raster_step = get_raster_step_1000in(self.rast_step)
+                Raster_step = inch2thou(self.rast_step)
                 if not self.engrave_up:
                     Raster_step = -Raster_step
 
@@ -1282,13 +1284,13 @@ class Laser_Service():
                 raster_starty = Yscale*starty
 
                 self.reporter.status("Generating EGV data...")
-                #self.master.update()
                 Raster_Eng_egv_inst = egv(
                     target=lambda s: Raster_Eng_data.append(s))
                 Raster_Eng_egv_inst.make_egv_data(
                     self.design.RengData.ecoords,
                     startX=raster_startx,
                     startY=raster_starty,
+                    units="mm",
                     Feed=Feed_Rate,
                     board_name=self.board_name,
                     Raster_step=Raster_step,
@@ -1300,9 +1302,8 @@ class Laser_Service():
                 )
                 # self.design.RengData.reset_path()
 
-            if (operation_type.find("Gcode_Cut") > -1) and (self.design.GcodeData.ecoords != []):
+            if (operation_type.find("Gcode_Cut") > -1) and (self.design.GcodeData.ecoords != []) and not self.stop:
                 self.reporter.status("Generating EGV data...")
-                #self.master.update()
                 Gcode_coords = self.design.GcodeData.ecoords
                 Gcode_coords = mirror_rotate_vector_coords(Gcode_coords, self.design.bounds, self.design_transform)
 
@@ -1360,7 +1361,8 @@ class Laser_Service():
             if len(data) < 4:
                 raise Exception("No laser data was generated.")
 
-            #self.master.update()
+            if self.stop:
+                return
             if output_filename != None:
                 self.write_egv_to_file(data, output_filename)
             else:
@@ -1422,7 +1424,7 @@ class Laser_Service():
         self.menu_View_Refresh()
         self.reporter.status("Data saved to: %s" % (fname))
 
-    def Home(self, event=None):
+    def Home(self):
         if self.GUI_Disabled:
             self.reporter.error("Busy")
             return
@@ -1469,20 +1471,17 @@ class Laser_Service():
                 self.reporter.error(traceback.format_exc())
                 pass
 
-    def Stop(self, event=None):
-        if self.stop[0] == True:
-            return
-        line1 = "Do you want to abort all jobs?"
-        line2 = "Sending data to the laser from K40 Whisperer is currently Paused."
-        line3 = "Press \"Cancel\" to resume."
+    def Pause(self):
         if self.k40 != None:
             self.k40.pause_un_pause()
 
-        if message_ask_ok_cancel("Stop Laser Job.", "%s\n\n%s\n%s" % (line1, line2, line3)):
-            self.stop[0] = True
-        else:
-            if self.k40 != None:
-                self.k40.pause_un_pause()
+    def Stop(self):
+        if self.stop:
+            return
+        self.stop.set()
+        if self.k40 != None:
+            self.k40.pause_un_pause()
+
 
     def Release_USB(self):
         if self.k40 != None:
@@ -1494,12 +1493,12 @@ class Laser_Service():
                 pass
             self.k40 = None
 
-    def Initialize_Laser(self, event=None):
+    def Initialize_Laser(self):
         if self.GUI_Disabled:
             self.reporter.error("Busy")
             return
         self.reporter.status("Initializing Laser")
-        self.stop[0] = True
+        self.stop.set()
         self.Release_USB()
         self.k40 = None
         self.move_head_window_temporary(Position(0.0, 0.0))
@@ -1527,7 +1526,7 @@ class Laser_Service():
             self.k40 = None
             self.reporter.error(traceback.format_exc())
 
-    def Unlock(self, event=None):
+    def Unlock(self):
         if self.GUI_Disabled:
             self.reporter.error("Busy")
             return
@@ -1574,11 +1573,11 @@ class Laser_Service():
             elif self.design.VengData.sorted == True:
                 self.reload_design()
 
-    def menu_Calc_Raster_Time(self, event=None):
+    def menu_Calc_Raster_Time(self):
         self.set_gui("disabled")
-        self.stop[0] = False
+        self.stop.reset()
         self.make_raster_coords()
-        self.stop[0] = True
+        self.stop.set()
         self.refreshTime()
         self.set_gui("normal")
         self.menu_View_Refresh()

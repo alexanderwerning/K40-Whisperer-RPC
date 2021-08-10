@@ -1,14 +1,15 @@
 from json.decoder import JSONDecodeError
 from k40_web.laser_controller.service import Laser_Service
 
-import pika
-import time
+
 import json
 from base64 import b64encode
 from k40_web.laser_controller.reporter import Reporter
 from queue import Empty
 
-from zmq import Context, PUB, SUB, SUBSCRIBE
+from zmq import Context, Poller, PUB, SUB, SUBSCRIBE, POLLIN
+from threading import Thread
+from queue import Queue, Empty
 import time
 
 context = Context()
@@ -17,6 +18,8 @@ task_socket.setsockopt(SUBSCRIBE, b"")
 task_socket.bind("tcp://127.0.0.1:6660")
 status_socket = context.socket(PUB)
 status_socket.bind("tcp://127.0.0.1:5556")
+task_poller = Poller()
+task_poller.register(task_socket, POLLIN)
 
 
 def send_msg(msg):
@@ -64,6 +67,20 @@ class JSON_Reporter(Reporter):
         encode_msg(x, msg_type=7)
 
 service = Laser_Service.instance(JSON_Reporter)
+cmd_queue = Queue()
+
+def service_fn():
+    while True:
+        try:
+            cmd = cmd_queue.get(timeout=3)
+            if cmd == "exit":
+                break
+            cmd()
+        except Empty:
+            pass
+
+service_thread = Thread(target=service_fn)
+service_thread.start()
 
 commands = {
     "Initialize_Laser": service.Initialize_Laser,
@@ -77,7 +94,7 @@ commands = {
     "Reload_design": service.reload_design,
     "Home": service.Home,
     "Unlock": service.Unlock,
-    "Stop": service.Stop,
+    "Pause": service.Pause,
     "Move_Right": service.Move_Right,
     "Move_Left": service.Move_Left,
     "Move_Up": service.Move_Up,
@@ -107,47 +124,50 @@ var_names_strings = [ "board_name",
 '''
 try:
     while True:
+        events = dict(task_poller.poll(3))
+        if task_socket not in events or events[task_socket] != POLLIN:
+            continue
+        body = task_socket.recv_string()
+        print(" [x] Received %s" % body)
+        
         try:
-            body = task_socket.recv_string()
-            print(" [x] Received %s" % body)
-            
-            try:
-                message = json.loads(body)
-            except JSONDecodeError:
-                print(f"error decoding: {body}")
-                continue
-            if message is None:
-                print("Error: message is None.")
-                continue
-            cmd = message["command"]
+            message = json.loads(body)
+        except JSONDecodeError:
+            print(f"error decoding: {body}")
+            continue
+        if message is None:
+            print("Error: message is None.")
+            continue
+        cmd = message["command"]
 
-            print(cmd)
-            if cmd in commands:
-                commands[cmd]()
-            elif cmd in commands_with_values:
-                value = message["parameter"]
-                print(value)
-                if type(value) is list:
-                    commands_with_values[cmd](*value)
-                else:
-                    commands_with_values[cmd](value)
-            elif cmd == "get":
-                param_name = message["key"]
-                JSON_Reporter.data(param_name, getattr(service, param_name))
-            elif cmd == "set":
-                param_name = message["key"]
-                param_value = message["value"]
-                try:
-                    setter_fn = getattr(service, "set_"+param_name)
-                    setter_fn(param_value)
-                except AttributeError as e:
-                    print(e)
-                    JSON_Reporter.error(f"{param_name} does not exist")
-                #JSON_Reporter.data(param_name, getattr(service, param_name)) # this should be handled by set var function
+        print(cmd)
+        if cmd == "Stop":
+            service.Stop()
+        elif cmd in commands:
+            cmd_queue.put(commands[cmd])
+        elif cmd in commands_with_values:
+            value = message["parameter"]
+            print(value)
+            if type(value) is list:
+                cmd_queue.put(lambda: commands_with_values[cmd](*value))
             else:
-                print("sorry i did not understand ", body)
-
-        except Empty as e:
-            pass
+                cmd_queue.put(lambda: commands_with_values[cmd](value))
+        elif cmd == "get":
+            param_name = message["key"]
+            JSON_Reporter.data(param_name, getattr(service, param_name))
+        elif cmd == "set":
+            param_name = message["key"]
+            param_value = message["value"]
+            try:
+                setter_fn = getattr(service, "set_"+param_name)
+                cmd_queue.put(lambda: setter_fn(param_value))
+            except AttributeError as e:
+                print(e)
+                JSON_Reporter.error(f"{param_name} does not exist")
+            #JSON_Reporter.data(param_name, getattr(service, param_name)) # this should be handled by set var function
+        else:
+            print("sorry i did not understand ", body)
 except KeyboardInterrupt:
+    cmd_queue.put("exit")
+    service_thread.join()
     print("bye!")

@@ -114,7 +114,7 @@ class egv:
                 if (mix):
                     crc ^= 0x8C
                 inbyte >>= 1
-        return crcS
+        return crc
 
     def make_distance(self, dist_mils):
         dist_mils = float(dist_mils)
@@ -278,7 +278,7 @@ class egv:
                       board_name="LASER-M2",
                       Raster_step=0,
                       reporter=None,
-                      stop_calc=None,
+                      stop_calc=False,
                       FlipXoffset=0,
                       Rapid_Feed_Rate=0,
                       use_laser=True):
@@ -286,9 +286,6 @@ class egv:
         # print("make_egv_data",Rapid_Feed_Rate,len(ecoords_in))
         # print("Rapid_Feed_Rate=",Rapid_Feed_Rate)
         ########################################################
-        if stop_calc == None:
-            stop_calc = []
-            stop_calc.append(0)
         if reporter == None:
             reporter = Reporter
         ########################################################
@@ -355,8 +352,9 @@ class egv:
                     timestamp = stamp  # interlock
                     reporter.status("Generating EGV Data: %.1f%%" %
                                (100.0*float(i)/float(len(ecoords_in))))
-                    if stop_calc[0] == True:
-                        raise Exception("Action Stopped by User.")
+                    if stop_calc == True:
+                        reporter.information("Action Stopped by User.")
+                        return
 
                 if (e2 == last_loop) and (not laser):
                     laser = True
@@ -473,8 +471,9 @@ class egv:
                     timestamp = stamp  # interlock
                     reporter("Generating EGV Data: %.1f%%" %
                                (100.0*float(cnt)/float(len(scanline))))
-                    if stop_calc[0] == True:
-                        raise Exception("Action Stopped by User.")
+                    if stop_calc:
+                        reporter.information("Action Stopped by User.")
+                        return
                 cnt = cnt+1
                 ######################################
                 ## Flip direction and reset loop    ##

@@ -35,10 +35,8 @@ def rotate_raster(image_in):
     return im_rotated
 
 
-def get_raster_step_1000in(rast_step):
-    val_in = float(rast_step)
-    value = int(round(val_in*1000.0, 1))
-    return value
+def inch2thou(value_inch):
+    return int(round(value_inch*1000, 1))
 
 
 def generate_bezier(bezier_settings, n=100):

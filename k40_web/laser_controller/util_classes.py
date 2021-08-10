@@ -1,3 +1,4 @@
+from sys import int_info
 from k40_web.laser_controller.ecoords import ECoord
 
 
@@ -114,3 +115,21 @@ class Design():
         self.VcutData = ECoord()
         self.GcodeData = ECoord()
         self.bounds = DesignBounds(0, 0, 0, 0)
+
+from threading import Lock
+
+class StoppedState:
+    def __init__(self, init=False):
+        self.stopped = init
+        self.lock = Lock()
+    
+    def set(self):
+        with self.lock:
+            self.stopped = True
+    
+    def reset(self):
+        with self.lock:
+            self.stopped = False
+
+    def __bool__(self):
+        return self.stopped
