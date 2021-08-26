@@ -130,8 +130,5 @@ def create_app(test_config=None):
         return Response(event_stream(),
                         mimetype="text/event-stream")
 
-    from . import db
-    db.init_app(app)
-
     ##app.teardown_appcontext(connection.close())
     return app
